@@ -9,8 +9,9 @@ import (
 type Major struct {
 	gorm.Model
 	ID           int           `gorm:"primary_key;university_id"`
-	Name         string        `gorm:"column:name"`
 	UniversityID int           `gorm:"column:university_id"`
+	Name         string        `gorm:"column:name"`
+	Description  string        `gorm:"column:description"`
 	TotalReviews *int          `gorm:"column:total_reviews"`
 	Rating       *int          `gorm:"column:rating"`
 	Reviews      []MajorReview `gorm:"foreignKey:MajorID"`

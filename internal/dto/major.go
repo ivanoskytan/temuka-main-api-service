@@ -3,6 +3,7 @@ package dto
 type AddMajorRequest struct {
 	Name         string `json:"name"`
 	UniversityID int    `json:"university_id"`
+	Description  string `json:"description"`
 }
 
 type AddMajorReviewRequest struct {

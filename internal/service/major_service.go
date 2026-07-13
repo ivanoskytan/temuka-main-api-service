@@ -33,6 +33,7 @@ func (s *MajorServiceImpl) AddMajor(ctx context.Context, req dto.AddMajorRequest
 	major := model.Major{
 		Name:         req.Name,
 		UniversityID: req.UniversityID,
+		Description:  req.Description,
 		TotalReviews: &zeroValue,
 		Rating:       &zeroValue,
 	}
