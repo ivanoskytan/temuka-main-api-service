@@ -58,6 +58,7 @@ func main() {
 		os.Getenv(constant.EnvAWSAccessKeyID),
 		os.Getenv(constant.EnvAWSSecretAccessKey),
 		os.Getenv(constant.EnvS3Bucket),
+		os.Getenv(constant.EnvS3Endpoint),
 	)
 	if err != nil {
 		log.Fatalf("Error initiating file storage: %v", err)

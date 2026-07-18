@@ -5,6 +5,7 @@ const (
 	EnvAWSAccessKeyID     = "AWS_ACCESS_KEY_ID"
 	EnvAWSSecretAccessKey = "AWS_SECRET_ACCESS_KEY"
 	EnvS3Bucket           = "S3_BUCKET_NAME"
+	EnvS3Endpoint         = "S3_ENDPOINT"
 
 	EnvRabbitMQURL = "RABBITMQ_URL"
 

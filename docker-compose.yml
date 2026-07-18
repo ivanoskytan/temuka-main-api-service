@@ -1,14 +1,57 @@
 version: '3.8'
 
 services:
-  app:
-    build:
-    container_name: temuka-api-service
+  # 1. PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: local-postgres
     ports:
-    - "3200:3200"
+      - "5435:5432"
     environment:
-    - REDIS_PORT=6379
-    - POSTGRES_USER=postgres
-    - POSTGRES_PWD=admin
-    - POSTGRES_DB=temukaDB
-    - POSTGRES_PORT=5432
+      POSTGRES_USER: developer
+      POSTGRES_PASSWORD: ivanosky144
+      POSTGRES_DB: temuka_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # 2. Local S3 (MinIO)
+  minio:
+    image: minio/minio:latest
+    container_name: local-minio
+    ports:
+      - "9000:9000"       # API port
+      - "9001:9001"       # Web Console port
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+
+  # 3. Redis
+  redis:
+    image: redis:7-alpine
+    container_name: local-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  # 4. RabbitMQ
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: local-rabbitmq
+    ports:
+      - "5672:5672"       # AMQP protocol port
+      - "15672:15672"     # Web Management Console
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+volumes:
+  postgres_data:
+  minio_data:
+  redis_data:
+  rabbitmq_data:

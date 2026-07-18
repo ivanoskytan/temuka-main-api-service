@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
@@ -18,7 +19,7 @@ type S3Wrapper struct {
 	Bucket string
 }
 
-func NewS3(awsRegion, awsAccessKey, awsSecretKey, awsBucket string) (*S3Wrapper, error) {
+func NewS3(awsRegion, awsAccessKey, awsSecretKey, awsBucket, awsEndpoint string) (*S3Wrapper, error) {
 	cfg, err := config.LoadDefaultConfig(context.TODO(),
 		config.WithRegion(awsRegion),
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(awsAccessKey, awsSecretKey, "")),
@@ -28,7 +29,12 @@ func NewS3(awsRegion, awsAccessKey, awsSecretKey, awsBucket string) (*S3Wrapper,
 		return nil, fmt.Errorf("Unable to load SDK config: %w", err)
 	}
 
-	client := s3.NewFromConfig(cfg)
+	client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+		if awsEndpoint != "" {
+			o.BaseEndpoint = aws.String(awsEndpoint)
+			o.UsePathStyle = true
+		}
+	})
 	log.Println("S3 client successfully created")
 
 	return &S3Wrapper{
@@ -51,7 +57,9 @@ func (s *S3Wrapper) UploadByte(ctx context.Context, key string, data []byte) err
 }
 
 func (s *S3Wrapper) UploadStream(ctx context.Context, key string, data io.Reader) error {
-	_, err := s.Client.PutObject(ctx, &s3.PutObjectInput{
+	uploader := manager.NewUploader(s.Client)
+
+	_, err := uploader.Upload(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(s.Bucket),
 		Key:    aws.String(key),
 		Body:   data,

@@ -49,12 +49,18 @@ func (s *FileServiceImpl) UploadFile(ctx context.Context, fileName string, fileD
 		return "", err
 	}
 
-	url := fmt.Sprintf(
-		"https://%s.s3.%s.amazonaws.com/%s",
-		constant.EnvS3Bucket,
-		constant.EnvAWSRegion,
-		s3Key,
-	)
+	var url string
+	fmt.Printf("S3 Endpoint: %s", constant.EnvS3Endpoint)
+	if constant.EnvS3Endpoint != "" {
+		url = fmt.Sprintf("%s/%s/%s", constant.EnvS3Endpoint, constant.EnvS3Bucket, s3Key)
+	} else {
+		url = fmt.Sprintf(
+			"https://%s.s3.%s.amazonaws.com/%s",
+			constant.EnvS3Bucket,
+			constant.EnvAWSRegion,
+			s3Key,
+		)
+	}
 
 	return url, nil
 }
