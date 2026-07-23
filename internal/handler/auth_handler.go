@@ -87,7 +87,7 @@ func (c *AuthHandlerImpl) ResetPassword(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if userIDstr == "" {
-		rest.WriteResponse(w, http.StatusBadRequest, map[string]string{"error": "User ID is required"})
+		rest.WriteResponse(w, http.StatusBadRequest, map[string]string{"error": "User id is required"})
 		return
 	}
 

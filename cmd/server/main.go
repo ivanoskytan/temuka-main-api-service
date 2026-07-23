@@ -12,6 +12,7 @@ import (
 	"github.com/temuka-api-service/util/file_storage"
 	"github.com/temuka-api-service/util/key_value_store"
 	"github.com/temuka-api-service/util/queue"
+	ws "github.com/temuka-api-service/util/websocket"
 )
 
 func EnableCors(next http.Handler) http.Handler {
@@ -76,7 +77,10 @@ func main() {
 		log.Fatalf("Error creating message queue channel: %v", err)
 	}
 
-	router := router.Routes(*postgres, *redis, *storage, *mqChannel)
+	hub := ws.NewHub()
+	go hub.Run()
+
+	router := router.Routes(*postgres, *redis, *storage, *mqChannel, hub)
 	protectedRoutes := EnableCors(router)
 
 	http.Handle("/", protectedRoutes)

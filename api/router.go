@@ -11,9 +11,10 @@ import (
 	fileStorage "github.com/temuka-api-service/util/file_storage"
 	keyValueStore "github.com/temuka-api-service/util/key_value_store"
 	"github.com/temuka-api-service/util/queue"
+	"github.com/temuka-api-service/util/websocket"
 )
 
-func Routes(db database.PostgresWrapper, redis keyValueStore.RedisWrapper, storage fileStorage.S3Wrapper, rmq queue.RabbitMQChannel) *mux.Router {
+func Routes(db database.PostgresWrapper, redis keyValueStore.RedisWrapper, storage fileStorage.S3Wrapper, rmq queue.RabbitMQChannel, hub *websocket.Hub) *mux.Router {
 	router := mux.NewRouter()
 
 	// Init repositories
@@ -60,7 +61,7 @@ func Routes(db database.PostgresWrapper, redis keyValueStore.RedisWrapper, stora
 	universityHandler := handler.NewUniversityHandler(universityService)
 	majorHandler := handler.NewMajorHandler(majorService)
 	locationHandler := handler.NewLocationHandler(locationService)
-	conversationHandler := handler.NewConversationHandler(conversationService)
+	chatHandler := handler.NewChatHandler(hub, conversationService)
 	fileUploadHandler := handler.NewFileHandler(fileService)
 
 	// Init routers
@@ -147,15 +148,16 @@ func Routes(db database.PostgresWrapper, redis keyValueStore.RedisWrapper, stora
 	locationRouter.HandleFunc("", locationHandler.GetLocations).Methods("GET")
 	locationRouter.HandleFunc("/{id}", locationHandler.UpdateLocation).Methods("PUT")
 
-	conversationRouter := router.PathPrefix("/api/conversation").Subrouter()
-	conversationRouter.Use(middleware.CheckAuth)
-	conversationRouter.HandleFunc("", conversationHandler.AddConversation).Methods("POST")
-	conversationRouter.HandleFunc("/{id}", conversationHandler.DeleteConversation).Methods("DELETE")
-	conversationRouter.HandleFunc("/{id}", conversationHandler.GetConversationDetail).Methods("GET")
-	conversationRouter.HandleFunc("/participant", conversationHandler.AddParticipant).Methods("POST")
-	conversationRouter.HandleFunc("/message", conversationHandler.AddMessage).Methods("POST")
-	conversationRouter.HandleFunc("/message/{conversation_id}", conversationHandler.RetrieveMessages).Methods("GET")
-	conversationRouter.HandleFunc("/all/{user_id}", conversationHandler.GetConversationsByUserID).Methods("GET")
+	chatRouter := router.PathPrefix("/api/chat").Subrouter()
+	chatRouter.Use(middleware.CheckAuth)
+	chatRouter.HandleFunc("/ws", chatHandler.ServeWebsocket).Methods("GET")
+	chatRouter.HandleFunc("", chatHandler.AddConversation).Methods("POST")
+	chatRouter.HandleFunc("/{id}", chatHandler.DeleteConversation).Methods("DELETE")
+	chatRouter.HandleFunc("/{id}", chatHandler.GetConversationDetail).Methods("GET")
+	chatRouter.HandleFunc("/participant", chatHandler.AddParticipant).Methods("POST")
+	chatRouter.HandleFunc("/message", chatHandler.AddMessage).Methods("POST")
+	chatRouter.HandleFunc("/message/{conversation_id}", chatHandler.RetrieveMessages).Methods("GET")
+	chatRouter.HandleFunc("/all/{user_id}", chatHandler.GetConversationsByUserID).Methods("GET")
 
 	return router
 }

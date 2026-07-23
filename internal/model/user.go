@@ -17,6 +17,7 @@ type User struct {
 	CoverPicture     string            `gorm:"column:cover_picture"`
 	Followers        []UserFollow      `gorm:"foreignKey:FollowerID"`
 	Followings       []UserFollow      `gorm:"foreignKey:FollowingID"`
+	Messages         []Message         `gorm:"foreignKey:UserID"`
 	SocialPoint      int               `gorm:"column:social_point"`
 	Desc             string            `gorm:"column:description"`
 	Country          string            `gorm:"column:country"`

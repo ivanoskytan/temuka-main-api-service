@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 
 	"github.com/temuka-api-service/internal/dto"
 	"github.com/temuka-api-service/internal/model"
@@ -42,14 +43,33 @@ func (s *ConversationServiceImpl) AddConversation(ctx context.Context, req dto.A
 }
 
 func (s *ConversationServiceImpl) AddMessage(ctx context.Context, req dto.AddMessageRequest) (*model.Message, error) {
-	message := model.Message{
-		ParticipantID: req.ParticipantID,
-		Text:          req.Text,
-	}
-	if err := s.ConversationRepository.AddMessage(ctx, &message); err != nil {
+	conv, err := s.ConversationRepository.GetConversationDetailByID(ctx, req.ConversationID)
+	if err != nil {
 		return nil, err
 	}
-	return &message, nil
+
+	var participantID int
+	for _, p := range conv.Participants {
+		if p.UserID == req.UserID {
+			participantID = p.ID
+			break
+		}
+	}
+
+	if participantID == 0 {
+		return nil, errors.New("user is not a participant in the conversation")
+	}
+
+	msg := &model.Message{
+		UserID: participantID,
+		Text:   req.Text,
+	}
+
+	if err := s.ConversationRepository.AddMessage(ctx, msg); err != nil {
+		return nil, err
+	}
+
+	return msg, nil
 }
 
 func (s *ConversationServiceImpl) AddParticipant(ctx context.Context, req dto.AddParticipantRequest) error {

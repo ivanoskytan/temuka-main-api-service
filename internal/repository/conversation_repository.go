@@ -38,7 +38,7 @@ func (r *ConversationRepositoryImpl) CreateConversation(ctx context.Context, con
 func (r *ConversationRepositoryImpl) GetConversationsByUserID(ctx context.Context, userID int) ([]model.Conversation, error) {
 	var conversations []model.Conversation
 
-	err := r.db.Where(ctx, "user_id = ?", userID).Find(&conversations)
+	err := r.db.Where(ctx, "user_id = ?", userID).Find(&conversations).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get conversations: %w", err)
 	}
@@ -81,7 +81,7 @@ func (r *ConversationRepositoryImpl) AddParticipant(ctx context.Context, partici
 func (r *ConversationRepositoryImpl) GetMessagesByConversationID(ctx context.Context, conversationID int) ([]model.Message, error) {
 	var messages []model.Message
 
-	err := r.db.Where(ctx, "conversation_id = ?", conversationID).Find(&messages)
+	err := r.db.Where(ctx, "conversation_id = ?", conversationID).Find(&messages).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get messages: %w", err)
 	}
