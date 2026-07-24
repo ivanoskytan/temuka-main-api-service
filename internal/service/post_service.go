@@ -17,7 +17,7 @@ import (
 
 type PostService interface {
 	CreatePost(ctx context.Context, req *dto.CreatePostRequest) (*model.Post, error)
-	GetPostDetail(ctx context.Context, postID int) (*model.Post, error)
+	GetPostDetail(ctx context.Context, postID int) (*dto.PostDetailData, error)
 	GetUserPosts(ctx context.Context, userID int) ([]model.Post, error)
 	UpdatePost(ctx context.Context, postID int, req *dto.UpdatePostRequest) (*model.Post, error)
 	DeletePost(ctx context.Context, postID int) error
@@ -66,8 +66,28 @@ func (s *PostServiceImpl) CreatePost(ctx context.Context, req *dto.CreatePostReq
 		return nil, errors.New("error creating post")
 	}
 
-	if err := s.communityRepo.UpdateCommunityPostsCount(ctx, req.CommunityID); err != nil {
-		return nil, errors.New("error updating community posts count")
+	if req.CommunityID != nil && *req.CommunityID != 0 {
+		var markVal, topicVal string
+		if req.Mark != nil {
+			markVal = *req.Mark
+		}
+		if req.Topic != nil {
+			topicVal = *req.Topic
+		}
+
+		communityPost := model.CommunityPost{
+			PostID:      newPost.ID,
+			CommunityID: *req.CommunityID,
+			Mark:        markVal,
+			Topic:       topicVal,
+		}
+
+		if err := s.communityRepo.CreateCommunityPost(ctx, &communityPost); err != nil {
+			return nil, errors.New("error linking post to community")
+		}
+		if err := s.communityRepo.UpdateCommunityPostsCount(ctx, *req.CommunityID); err != nil {
+			return nil, errors.New("error updating community posts count")
+		}
 	}
 
 	go s.searchIndexPublisher.PublishSyncEvent(constant.EventOperationCreate, constant.EventEntityTypePost, fmt.Sprintf("%d", newPost.ID), map[string]interface{}{
@@ -79,8 +99,43 @@ func (s *PostServiceImpl) CreatePost(ctx context.Context, req *dto.CreatePostReq
 	return &newPost, nil
 }
 
-func (s *PostServiceImpl) GetPostDetail(ctx context.Context, postID int) (*model.Post, error) {
-	return s.postRepo.GetPostDetailByID(ctx, postID)
+func (s *PostServiceImpl) GetPostDetail(ctx context.Context, postID int) (*dto.PostDetailData, error) {
+	post, err := s.postRepo.GetPostDetailByID(ctx, postID)
+	if err != nil {
+		return nil, err
+	}
+
+	user, err := s.userRepo.GetUserByID(ctx, post.UserID)
+	userSummary := dto.PostUserSummary{}
+	if err == nil && user != nil {
+		userSummary.Username = user.Username
+		userSummary.ProfilePicture = user.ProfilePicture
+	}
+
+	comments, err := s.commentRepo.GetCommentsByPostID(ctx, postID)
+	postComments := make([]dto.PostCommentSummary, 0)
+
+	if err == nil {
+		for _, c := range comments {
+			postComments = append(postComments, dto.PostCommentSummary{
+				ID:             c.ID,
+				UserID:         c.UserID,
+				Username:       c.User.Username,
+				Content:        c.Content,
+				ParentID:       c.ParentID,
+				PostID:         c.PostID,
+				ProfilePicture: c.User.Username,
+				Votes:          len(c.Votes),
+				CreatedAt:      c.CreatedAt,
+			})
+		}
+	}
+
+	return &dto.PostDetailData{
+		Post:     post,
+		User:     userSummary,
+		Comments: postComments,
+	}, nil
 }
 
 func (s *PostServiceImpl) GetUserPosts(ctx context.Context, userID int) ([]model.Post, error) {

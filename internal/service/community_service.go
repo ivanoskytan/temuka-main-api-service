@@ -16,7 +16,7 @@ type CommunityService interface {
 	UpdateCommunity(ctx context.Context, id int, data dto.UpdateCommunityRequest) (*model.Community, error)
 	DeleteCommunity(ctx context.Context, id int) error
 	JoinCommunity(ctx context.Context, id int, data dto.JoinCommunityRequest) error
-	GetCommunityPosts(ctx context.Context, id int, filters map[string]interface{}) ([]model.CommunityPost, error)
+	GetCommunityPosts(ctx context.Context, id int, filters map[string]interface{}) ([]dto.CommunityPostData, error)
 	GetCommunityDetail(ctx context.Context, slug string) (*model.Community, error)
 	GetUserJoinedCommunities(ctx context.Context, data dto.GetUserJoinedCommunitiesRequest) ([]model.Community, error)
 }
@@ -115,11 +115,30 @@ func (s *CommunityServiceImpl) JoinCommunity(ctx context.Context, id int, data d
 	return nil
 }
 
-func (s *CommunityServiceImpl) GetCommunityPosts(ctx context.Context, id int, filters map[string]interface{}) ([]model.CommunityPost, error) {
-	posts, err := s.CommunityRepository.GetCommunityPosts(ctx, id, filters)
+func (s *CommunityServiceImpl) GetCommunityPosts(ctx context.Context, id int, filters map[string]interface{}) ([]dto.CommunityPostData, error) {
+	communityPosts, err := s.CommunityRepository.GetCommunityPosts(ctx, id, filters)
 	if err != nil {
 		return nil, errors.New("error retrieving community posts")
 	}
+
+	var posts []dto.CommunityPostData
+	for _, cp := range communityPosts {
+		posts = append(posts, dto.CommunityPostData{
+			ID:           cp.ID,
+			PostID:       cp.Post.ID,
+			CommunityID:  cp.CommunityID,
+			Title:        cp.Post.Title,
+			Description:  cp.Post.Description,
+			Image:        cp.Post.Image,
+			UserID:       cp.Post.UserID,
+			Topic:        cp.Topic,
+			Mark:         cp.Mark,
+			UpvoteCount:  len(cp.Post.Likes),
+			CommentCount: len(cp.Post.Comments),
+			CreatedAt:    cp.Post.CreatedAt,
+		})
+	}
+
 	return posts, nil
 }
 

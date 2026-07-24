@@ -23,6 +23,7 @@ type CommunityRepository interface {
 	UpdateCommunityMembersCount(ctx context.Context, id int) error
 	DeleteCommunity(ctx context.Context, id int) error
 	GetCommunityDetailBySlug(ctx context.Context, slug string) (*model.Community, error)
+	CreateCommunityPost(ctx context.Context, communityPost *model.CommunityPost) error
 }
 
 type CommunityRepositoryImpl struct {
@@ -38,6 +39,13 @@ func NewCommunityRepository(db database.PostgresWrapper) CommunityRepository {
 func (r *CommunityRepositoryImpl) CreateCommunity(ctx context.Context, community *model.Community) error {
 	if err := r.db.Create(ctx, community); err != nil {
 		return fmt.Errorf("failed to create community: %w", err)
+	}
+	return nil
+}
+
+func (r *CommunityRepositoryImpl) CreateCommunityPost(ctx context.Context, communityPost *model.CommunityPost) error {
+	if err := r.db.Create(ctx, communityPost); err != nil {
+		return fmt.Errorf("failed to create community post: %w", err)
 	}
 	return nil
 }
@@ -132,7 +140,11 @@ func (r *CommunityRepositoryImpl) CheckMembership(ctx context.Context, community
 func (r *CommunityRepositoryImpl) GetCommunityPosts(ctx context.Context, communityID int, filters map[string]interface{}) ([]model.CommunityPost, error) {
 	var posts []model.CommunityPost
 
-	query := r.db.Where(ctx, "community_id = ?", communityID)
+	query := r.db.DB.WithContext(ctx).
+		Preload("Post").
+		Preload("Post.Comments").
+		Preload("Post.Likes").
+		Where("community_id = ?", communityID)
 
 	for key, value := range filters {
 		if key == "sort" || key == "sort_by" {
