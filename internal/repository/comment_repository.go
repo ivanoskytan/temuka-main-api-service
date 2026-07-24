@@ -27,7 +27,7 @@ func NewCommentRepository(db database.PostgresWrapper) CommentRepository {
 }
 
 func (r *CommentRepositoryImpl) CreateComment(ctx context.Context, comment *model.Comment) error {
-	err := r.db.Create(ctx, comment)
+	err := r.db.DB.WithContext(ctx).Create(comment).Error
 	if err != nil {
 		return fmt.Errorf("failed to create comment: %w", err)
 	}
@@ -37,7 +37,7 @@ func (r *CommentRepositoryImpl) CreateComment(ctx context.Context, comment *mode
 func (r *CommentRepositoryImpl) GetCommentsByPostID(ctx context.Context, postID int) ([]model.Comment, error) {
 	var comments []model.Comment
 
-	db := r.db.Where(ctx, "post_id = ?", postID)
+	db := r.db.DB.WithContext(ctx).Where("post_id = ?", postID)
 	if err := db.Find(&comments).Error; err != nil {
 		return nil, fmt.Errorf("failed to get comments: %w", err)
 	}
@@ -46,7 +46,7 @@ func (r *CommentRepositoryImpl) GetCommentsByPostID(ctx context.Context, postID 
 }
 
 func (r *CommentRepositoryImpl) DeleteComment(ctx context.Context, commentID int) error {
-	if err := r.db.Delete(ctx, &model.Comment{}, commentID); err != nil {
+	if err := r.db.DB.WithContext(ctx).Delete(&model.Comment{}, commentID).Error; err != nil {
 		return fmt.Errorf("failed to delete comment: %w", err)
 	}
 	return nil
@@ -55,7 +55,7 @@ func (r *CommentRepositoryImpl) DeleteComment(ctx context.Context, commentID int
 func (r *CommentRepositoryImpl) GetRepliesByParentID(ctx context.Context, parentID int) ([]model.Comment, error) {
 	var replies []model.Comment
 
-	db := r.db.Where(ctx, "parent_id = ?", parentID)
+	db := r.db.DB.WithContext(ctx).Where("parent_id = ?", parentID)
 	if err := db.Find(&replies).Error; err != nil {
 		return nil, fmt.Errorf("failed to get replies: %w", err)
 	}
@@ -66,7 +66,7 @@ func (r *CommentRepositoryImpl) GetRepliesByParentID(ctx context.Context, parent
 func (r *CommentRepositoryImpl) GetCommentDetailByID(ctx context.Context, id int) (*model.Comment, error) {
 	var comment model.Comment
 
-	if err := r.db.First(ctx, &comment, id); err != nil {
+	if err := r.db.DB.WithContext(ctx).First(&comment, id).Error; err != nil {
 		return nil, fmt.Errorf("failed to get comment detail: %w", err)
 	}
 

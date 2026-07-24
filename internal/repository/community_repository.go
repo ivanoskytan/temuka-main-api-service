@@ -37,14 +37,14 @@ func NewCommunityRepository(db database.PostgresWrapper) CommunityRepository {
 }
 
 func (r *CommunityRepositoryImpl) CreateCommunity(ctx context.Context, community *model.Community) error {
-	if err := r.db.Create(ctx, community); err != nil {
+	if err := r.db.DB.WithContext(ctx).Create(community).Error; err != nil {
 		return fmt.Errorf("failed to create community: %w", err)
 	}
 	return nil
 }
 
 func (r *CommunityRepositoryImpl) CreateCommunityPost(ctx context.Context, communityPost *model.CommunityPost) error {
-	if err := r.db.Create(ctx, communityPost); err != nil {
+	if err := r.db.DB.WithContext(ctx).Create(communityPost).Error; err != nil {
 		return fmt.Errorf("failed to create community post: %w", err)
 	}
 	return nil
@@ -53,7 +53,7 @@ func (r *CommunityRepositoryImpl) CreateCommunityPost(ctx context.Context, commu
 func (r *CommunityRepositoryImpl) CheckCommunityNameAvailability(ctx context.Context, name string) bool {
 	var count int64
 
-	err := r.db.Model(ctx, &model.Community{}).
+	err := r.db.DB.WithContext(ctx).Model(&model.Community{}).
 		Where("name = ?", name).
 		Count(&count).Error
 
@@ -65,7 +65,7 @@ func (r *CommunityRepositoryImpl) CheckCommunityNameAvailability(ctx context.Con
 }
 
 func (r *CommunityRepositoryImpl) UpdateCommunity(ctx context.Context, id int, community *model.Community) error {
-	if err := r.db.Model(ctx, &model.Community{}).
+	if err := r.db.DB.WithContext(ctx).Model(&model.Community{}).
 		Where("id = ?", id).
 		Updates(community).Error; err != nil {
 		return fmt.Errorf("failed to update community: %w", err)
@@ -75,7 +75,7 @@ func (r *CommunityRepositoryImpl) UpdateCommunity(ctx context.Context, id int, c
 
 func (r *CommunityRepositoryImpl) GetCommunityDetailByID(ctx context.Context, id int) (*model.Community, error) {
 	var community model.Community
-	if err := r.db.First(ctx, &community, id); err != nil {
+	if err := r.db.DB.WithContext(ctx).First(&community, id).Error; err != nil {
 		return nil, fmt.Errorf("failed to get community detail: %w", err)
 	}
 	return &community, nil
@@ -83,28 +83,28 @@ func (r *CommunityRepositoryImpl) GetCommunityDetailByID(ctx context.Context, id
 
 func (r *CommunityRepositoryImpl) GetCommunities(ctx context.Context) ([]model.Community, error) {
 	var communities []model.Community
-	if err := r.db.Find(ctx, &communities); err != nil {
+	if err := r.db.DB.WithContext(ctx).Find(&communities).Error; err != nil {
 		return nil, fmt.Errorf("failed to get communities: %w", err)
 	}
 	return communities, nil
 }
 
 func (r *CommunityRepositoryImpl) DeleteCommunity(ctx context.Context, id int) error {
-	if err := r.db.Delete(ctx, &model.Community{}, id); err != nil {
+	if err := r.db.DB.WithContext(ctx).Delete(&model.Community{}, id).Error; err != nil {
 		return fmt.Errorf("failed to delete community: %w", err)
 	}
 	return nil
 }
 
 func (r *CommunityRepositoryImpl) AddCommunityMember(ctx context.Context, member *model.CommunityMember) error {
-	if err := r.db.Create(ctx, member); err != nil {
+	if err := r.db.DB.WithContext(ctx).Create(member).Error; err != nil {
 		return fmt.Errorf("failed to add community member: %w", err)
 	}
 	return nil
 }
 
 func (r *CommunityRepositoryImpl) UpdateCommunityPostsCount(ctx context.Context, id int) error {
-	if err := r.db.Model(ctx, &model.Community{}).
+	if err := r.db.DB.WithContext(ctx).Model(&model.Community{}).
 		Where("id = ?", id).
 		Update("posts_count", gorm.Expr("posts_count + 1")).Error; err != nil {
 		return fmt.Errorf("failed to update community posts count: %w", err)
@@ -113,7 +113,7 @@ func (r *CommunityRepositoryImpl) UpdateCommunityPostsCount(ctx context.Context,
 }
 
 func (r *CommunityRepositoryImpl) UpdateCommunityMembersCount(ctx context.Context, id int) error {
-	if err := r.db.Model(ctx, &model.Community{}).
+	if err := r.db.DB.WithContext(ctx).Model(&model.Community{}).
 		Where("id = ?", id).
 		Update("members_count", gorm.Expr("members_count + 1")).Error; err != nil {
 		return fmt.Errorf("failed to update community members count: %w", err)
@@ -124,7 +124,7 @@ func (r *CommunityRepositoryImpl) UpdateCommunityMembersCount(ctx context.Contex
 func (r *CommunityRepositoryImpl) CheckMembership(ctx context.Context, communityID, userID int) (*model.CommunityMember, error) {
 	var member model.CommunityMember
 
-	err := r.db.Where(ctx, "community_id = ? AND user_id = ?", communityID, userID).
+	err := r.db.DB.WithContext(ctx).Where("community_id = ? AND user_id = ?", communityID, userID).
 		First(&member).Error
 
 	if err != nil {

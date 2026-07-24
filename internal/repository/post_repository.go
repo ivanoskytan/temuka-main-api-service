@@ -25,7 +25,7 @@ func NewPostRepository(db database.PostgresWrapper) PostRepository {
 }
 
 func (r *PostRepositoryImpl) CreatePost(ctx context.Context, post *model.Post) error {
-	if err := r.db.Create(ctx, post); err != nil {
+	if err := r.db.DB.WithContext(ctx).Create(post).Error; err != nil {
 		return fmt.Errorf("failed to create post: %w", err)
 	}
 	return nil
@@ -34,7 +34,7 @@ func (r *PostRepositoryImpl) CreatePost(ctx context.Context, post *model.Post) e
 func (r *PostRepositoryImpl) GetPostDetailByID(ctx context.Context, id int) (*model.Post, error) {
 	var post model.Post
 
-	if err := r.db.First(ctx, &post, id); err != nil {
+	if err := r.db.DB.WithContext(ctx).First(&post, id).Error; err != nil {
 		return nil, fmt.Errorf("failed to get post detail: %w", err)
 	}
 
@@ -49,7 +49,7 @@ func (r *PostRepositoryImpl) DeletePost(ctx context.Context, id int) error {
 }
 
 func (r *PostRepositoryImpl) UpdatePost(ctx context.Context, id int, post *model.Post) error {
-	q := r.db.Model(ctx, &model.Post{}).Where("id = ?", id)
+	q := r.db.DB.WithContext(ctx).Model(&model.Post{}).Where("id = ?", id)
 
 	if err := q.Updates(post).Error; err != nil {
 		return fmt.Errorf("failed to update post: %w", err)
@@ -61,7 +61,7 @@ func (r *PostRepositoryImpl) UpdatePost(ctx context.Context, id int, post *model
 func (r *PostRepositoryImpl) GetPostsByUserID(ctx context.Context, userId int) ([]model.Post, error) {
 	var posts []model.Post
 
-	q := r.db.Where(ctx, "user_id = ?", userId)
+	q := r.db.DB.WithContext(ctx).Where("user_id = ?", userId)
 
 	if err := q.Find(&posts).Error; err != nil {
 		return nil, fmt.Errorf("failed to get posts by user id: %w", err)

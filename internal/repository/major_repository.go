@@ -29,14 +29,14 @@ func NewMajorRepository(db database.PostgresWrapper) MajorRepository {
 }
 
 func (r *MajorRepositoryImpl) CreateMajor(ctx context.Context, major *model.Major) error {
-	if err := r.db.Create(ctx, major); err != nil {
+	if err := r.db.DB.WithContext(ctx).Create(major).Error; err != nil {
 		return fmt.Errorf("failed to create major: %w", err)
 	}
 	return nil
 }
 
 func (r *MajorRepositoryImpl) UpdateMajor(ctx context.Context, id int, major *model.Major) error {
-	q := r.db.Model(ctx, &model.Major{}).Where("id = ?", id)
+	q := r.db.DB.WithContext(ctx).Model(&model.Major{}).Where("id = ?", id)
 	if err := q.Updates(major).Error; err != nil {
 		return fmt.Errorf("failed to update major metrics: %w", err)
 	}
@@ -46,7 +46,7 @@ func (r *MajorRepositoryImpl) UpdateMajor(ctx context.Context, id int, major *mo
 func (r *MajorRepositoryImpl) GetMajorsByUniversityID(ctx context.Context, universityId int) ([]model.Major, error) {
 	var majors []model.Major
 
-	if err := r.db.Where(ctx, &majors, "university_id", universityId); err != nil {
+	if err := r.db.DB.WithContext(ctx).Where(&majors, "university_id", universityId).Error; err != nil {
 		return nil, fmt.Errorf("failed to get majors: %w", err)
 	}
 
@@ -55,7 +55,7 @@ func (r *MajorRepositoryImpl) GetMajorsByUniversityID(ctx context.Context, unive
 
 func (r *MajorRepositoryImpl) GetMajorList(ctx context.Context) ([]model.Major, error) {
 	var majors []model.Major
-	if err := r.db.Find(ctx, &majors); err != nil {
+	if err := r.db.DB.WithContext(ctx).Find(&majors).Error; err != nil {
 		return nil, fmt.Errorf("failed to retrieve complete major list: %w", err)
 	}
 	return majors, nil
@@ -63,7 +63,7 @@ func (r *MajorRepositoryImpl) GetMajorList(ctx context.Context) ([]model.Major, 
 
 func (r *MajorRepositoryImpl) GetMajorByID(ctx context.Context, id int) (*model.Major, error) {
 	var major model.Major
-	if err := r.db.First(ctx, &major, id); err != nil {
+	if err := r.db.DB.WithContext(ctx).First(&major, id).Error; err != nil {
 		return nil, fmt.Errorf("failed to get major by id: %w", err)
 	}
 	return &major, nil
@@ -72,7 +72,7 @@ func (r *MajorRepositoryImpl) GetMajorByID(ctx context.Context, id int) (*model.
 func (r *MajorRepositoryImpl) GetMajorReviewsByMajorID(ctx context.Context, majorId int) ([]model.MajorReview, error) {
 	var majorReviews []model.MajorReview
 
-	if err := r.db.Where(ctx, &majorReviews, "major_id", majorId); err != nil {
+	if err := r.db.DB.WithContext(ctx).Where(&majorReviews, "major_id", majorId).Error; err != nil {
 		return nil, fmt.Errorf("failed to get major reviews: %w", err)
 	}
 
@@ -80,7 +80,7 @@ func (r *MajorRepositoryImpl) GetMajorReviewsByMajorID(ctx context.Context, majo
 }
 
 func (r *MajorRepositoryImpl) SetMajorReview(ctx context.Context, review *model.MajorReview) error {
-	if err := r.db.Create(ctx, review); err != nil {
+	if err := r.db.DB.WithContext(ctx).Create(review).Error; err != nil {
 		return fmt.Errorf("failed to save major review entity: %w", err)
 	}
 	return nil

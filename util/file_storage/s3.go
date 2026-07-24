@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
 type S3Wrapper struct {
@@ -48,6 +49,7 @@ func (s *S3Wrapper) UploadByte(ctx context.Context, key string, data []byte) err
 		Bucket: aws.String(s.Bucket),
 		Key:    aws.String(key),
 		Body:   bytes.NewReader(data),
+		ACL:    types.ObjectCannedACLPublicRead,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to upload object to S3: %w", err)

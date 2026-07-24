@@ -24,14 +24,14 @@ func NewMessageRepositoryImpl(db database.PostgresWrapper) MessageRepository {
 }
 
 func (r *MessageRepositoryImpl) CreateMessage(ctx context.Context, message *model.Message) error {
-	if err := r.db.Create(ctx, message); err != nil {
+	if err := r.db.DB.WithContext(ctx).Create(message).Error; err != nil {
 		return fmt.Errorf("failed to create message: %w", err)
 	}
 	return nil
 }
 
 func (r *MessageRepositoryImpl) DeleteMessage(ctx context.Context, id int) error {
-	if err := r.db.Delete(ctx, &model.Message{}, id); err != nil {
+	if err := r.db.DB.WithContext(ctx).Delete(&model.Message{}, id).Error; err != nil {
 		return fmt.Errorf("failed to delete message: %w", err)
 	}
 	return nil

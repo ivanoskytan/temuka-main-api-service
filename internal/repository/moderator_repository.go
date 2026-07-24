@@ -25,7 +25,7 @@ func NewModeratorRepository(db database.PostgresWrapper) ModeratorRepository {
 }
 
 func (r *ModeratorRepositoryImpl) CreateModerator(ctx context.Context, moderator *model.Moderator) error {
-	if err := r.db.Create(ctx, moderator); err != nil {
+	if err := r.db.DB.WithContext(ctx).Create(moderator).Error; err != nil {
 		return fmt.Errorf("failed to create moderator: %w", err)
 	}
 	return nil
@@ -34,7 +34,7 @@ func (r *ModeratorRepositoryImpl) CreateModerator(ctx context.Context, moderator
 func (r *ModeratorRepositoryImpl) GetModeratorsByCommunityID(ctx context.Context, communityId int) ([]model.Moderator, error) {
 	var moderators []model.Moderator
 
-	if err := r.db.Where(ctx, &moderators, "community_id = ?", communityId); err != nil {
+	if err := r.db.DB.WithContext(ctx).Where(&moderators, "community_id = ?", communityId).Error; err != nil {
 		return nil, fmt.Errorf("failed to get moderators: %w", err)
 	}
 
@@ -42,7 +42,7 @@ func (r *ModeratorRepositoryImpl) GetModeratorsByCommunityID(ctx context.Context
 }
 
 func (r *ModeratorRepositoryImpl) DeleteModerator(ctx context.Context, id int) error {
-	if err := r.db.Delete(ctx, &model.Moderator{}, id); err != nil {
+	if err := r.db.DB.WithContext(ctx).Delete(&model.Moderator{}, id).Error; err != nil {
 		return fmt.Errorf("failed to delete moderator: %w", err)
 	}
 	return nil

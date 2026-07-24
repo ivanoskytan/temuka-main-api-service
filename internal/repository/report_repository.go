@@ -24,14 +24,14 @@ func NewReportRepository(db database.PostgresWrapper) ReportRepository {
 }
 
 func (r *ReportRepositoryImpl) CreateReport(ctx context.Context, report *model.Report) error {
-	if err := r.db.Create(ctx, report); err != nil {
+	if err := r.db.DB.WithContext(ctx).Create(report).Error; err != nil {
 		return fmt.Errorf("failed to create report: %w", err)
 	}
 	return nil
 }
 
 func (r *ReportRepositoryImpl) DeleteReport(ctx context.Context, id int) error {
-	if err := r.db.Delete(ctx, &model.Report{}, id); err != nil {
+	if err := r.db.DB.WithContext(ctx).Delete(&model.Report{}, id).Error; err != nil {
 		return fmt.Errorf("failed to delete report: %w", err)
 	}
 	return nil

@@ -24,7 +24,7 @@ func NewNotificationRepository(db database.PostgresWrapper) NotificationReposito
 }
 
 func (r *NotificationRepositoryImpl) CreateNotification(ctx context.Context, notification *model.Notification) error {
-	if err := r.db.Create(ctx, notification); err != nil {
+	if err := r.db.DB.WithContext(ctx).Create(notification).Error; err != nil {
 		return fmt.Errorf("failed to create notification: %w", err)
 	}
 	return nil
@@ -33,7 +33,7 @@ func (r *NotificationRepositoryImpl) CreateNotification(ctx context.Context, not
 func (r *NotificationRepositoryImpl) GetNotificationsByUserID(ctx context.Context, userId int) ([]model.Notification, error) {
 	var notifications []model.Notification
 
-	if err := r.db.Where(ctx, &notifications, "user_id = ?", userId); err != nil {
+	if err := r.db.DB.WithContext(ctx).Where(&notifications, "user_id = ?", userId).Error; err != nil {
 		return nil, fmt.Errorf("failed to get notifications: %w", err)
 	}
 
