@@ -12,3 +12,13 @@ type AddMajorReviewRequest struct {
 	Text    string `json:"text"`
 	Stars   int    `json:"stars"`
 }
+
+type MajorDetailResponse struct {
+	ID             int    `json:"ID"`
+	Name           string `json:"Name"`
+	Description    string `json:"Description"`
+	TotalReviews   *int   `json:"TotalReviews"`
+	Rating         *int   `json:"Rating"`
+	UniversityName string `json:"UniversityName"`
+	UniversityLogo string `json:"UniversityLogo"`
+}

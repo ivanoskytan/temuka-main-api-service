@@ -43,19 +43,19 @@ func (r *MajorRepositoryImpl) UpdateMajor(ctx context.Context, id int, major *mo
 	return nil
 }
 
-func (r *MajorRepositoryImpl) GetMajorsByUniversityID(ctx context.Context, universityId int) ([]model.Major, error) {
+func (r *MajorRepositoryImpl) GetMajorList(ctx context.Context) ([]model.Major, error) {
 	var majors []model.Major
 
-	if err := r.db.DB.WithContext(ctx).Where(&majors, "university_id", universityId).Error; err != nil {
+	if err := r.db.DB.WithContext(ctx).Preload("University").Find(&majors).Error; err != nil {
 		return nil, fmt.Errorf("failed to get majors: %w", err)
 	}
 
 	return majors, nil
 }
 
-func (r *MajorRepositoryImpl) GetMajorList(ctx context.Context) ([]model.Major, error) {
+func (r *MajorRepositoryImpl) GetMajorsByUniversityID(ctx context.Context, universityId int) ([]model.Major, error) {
 	var majors []model.Major
-	if err := r.db.DB.WithContext(ctx).Find(&majors).Error; err != nil {
+	if err := r.db.DB.WithContext(ctx).Where("university_id", universityId).Find(&majors).Error; err != nil {
 		return nil, fmt.Errorf("failed to retrieve complete major list: %w", err)
 	}
 	return majors, nil
