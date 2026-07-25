@@ -1,5 +1,7 @@
 package dto
 
+import "time"
+
 type AddUniversityRequest struct {
 	Name          string `json:"name"`
 	Summary       string `json:"summary"`
@@ -33,4 +35,17 @@ type AddReviewRequest struct {
 	UniversityID int    `json:"university_id"`
 	Text         string `json:"text"`
 	Stars        int    `json:"stars"`
+}
+
+type UniversityReviewResponse struct {
+	ID           int `json:"ID"`
+	UniversityID int `json:"UniversityID"`
+	UserID       int `json:"UserID"`
+
+	Username       string    `json:"Username"`
+	ProfilePicture string    `json:"ProfilePicture"`
+	Stars          int       `json:"Stars"`
+	Text           string    `json:"Text"`
+	CreatedAt      time.Time `json:"CreatedAt"`
+	UpdatedAt      time.Time `json:"UpdatedAt"`
 }

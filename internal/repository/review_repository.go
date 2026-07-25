@@ -42,7 +42,7 @@ func (r *ReviewRepositoryImpl) DeleteReview(ctx context.Context, id int) error {
 func (r *ReviewRepositoryImpl) GetReviewsByUniversityID(ctx context.Context, universityID int) ([]model.Review, error) {
 	var reviews []model.Review
 
-	err := r.db.DB.WithContext(ctx).Where("university_id = ?", universityID).Find(&reviews).Error
+	err := r.db.DB.WithContext(ctx).Preload("User").Where("university_id = ?", universityID).Find(&reviews).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get reviews: %w", err)
 	}

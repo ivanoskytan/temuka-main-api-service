@@ -31,8 +31,9 @@ type PostUserSummary struct {
 }
 
 type PostCommentSummary struct {
-	ID             int       `json:"ID"`
-	UserID         int       `json:"UserID"`
+	ID     int `json:"ID"`
+	UserID int `json:"UserID"`
+
 	Username       string    `json:"Username"`
 	ProfilePicture string    `json:"ProfilePicture"`
 	PostID         int       `json:"PostID"`
@@ -42,7 +43,7 @@ type PostCommentSummary struct {
 	CreatedAt      time.Time `json:"CreatedAt"`
 }
 
-type PostDetailData struct {
+type PostDetailResponse struct {
 	Post     *model.Post          `json:"post"`
 	User     PostUserSummary      `json:"user"`
 	Comments []PostCommentSummary `json:"comments"`

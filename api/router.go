@@ -131,7 +131,7 @@ func Routes(db database.PostgresWrapper, redis keyValueStore.RedisWrapper, stora
 	universityRouter.HandleFunc("/{slug}", universityHandler.GetUniversityDetail).Methods("GET")
 	universityRouter.HandleFunc("", universityHandler.GetUniversities).Methods("GET")
 	universityRouter.HandleFunc("/review", universityHandler.AddReview).Methods("POST")
-	universityRouter.HandleFunc("/review/university_id", universityHandler.GetUniversityReviews).Methods("GET")
+	universityRouter.HandleFunc("/review/{university_id}", universityHandler.GetUniversityReviews).Methods("GET")
 
 	majorRouter := router.PathPrefix("/api/major").Subrouter()
 	majorRouter.Use(middleware.CheckAuth)

@@ -16,7 +16,7 @@ type UniversityService interface {
 	GetUniversityDetail(ctx context.Context, slug string) (*model.University, error)
 	GetUniversities(ctx context.Context) ([]model.University, error)
 	AddReview(ctx context.Context, req dto.AddReviewRequest) (*model.Review, error)
-	GetUniversityReviews(ctx context.Context, universityID int) ([]model.Review, error)
+	GetUniversityReviews(ctx context.Context, universityID int) ([]dto.UniversityReviewResponse, error)
 }
 
 type UniversityServiceImpl struct {
@@ -132,6 +132,25 @@ func (s *UniversityServiceImpl) AddReview(ctx context.Context, req dto.AddReview
 	return &review, nil
 }
 
-func (s *UniversityServiceImpl) GetUniversityReviews(ctx context.Context, universityID int) ([]model.Review, error) {
-	return s.ReviewRepository.GetReviewsByUniversityID(ctx, universityID)
+func (s *UniversityServiceImpl) GetUniversityReviews(ctx context.Context, universityID int) ([]dto.UniversityReviewResponse, error) {
+	reviews, err := s.ReviewRepository.GetReviewsByUniversityID(ctx, universityID)
+	if err != nil {
+		return nil, errors.New("failed to get reviews")
+	}
+
+	var universityReviewResponse []dto.UniversityReviewResponse
+	for _, review := range reviews {
+		universityReviewResponse = append(universityReviewResponse, dto.UniversityReviewResponse{
+			ID:             review.ID,
+			UserID:         review.UserID,
+			UniversityID:   review.UniversityID,
+			Text:           review.Text,
+			Stars:          review.Stars,
+			Username:       review.User.Username,
+			ProfilePicture: review.User.ProfilePicture,
+			CreatedAt:      review.CreatedAt,
+		})
+	}
+
+	return universityReviewResponse, nil
 }

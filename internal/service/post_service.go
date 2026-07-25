@@ -17,7 +17,7 @@ import (
 
 type PostService interface {
 	CreatePost(ctx context.Context, req *dto.CreatePostRequest) (*model.Post, error)
-	GetPostDetail(ctx context.Context, postID int) (*dto.PostDetailData, error)
+	GetPostDetail(ctx context.Context, postID int) (*dto.PostDetailResponse, error)
 	GetUserPosts(ctx context.Context, userID int) ([]model.Post, error)
 	UpdatePost(ctx context.Context, postID int, req *dto.UpdatePostRequest) (*model.Post, error)
 	DeletePost(ctx context.Context, postID int) error
@@ -99,7 +99,7 @@ func (s *PostServiceImpl) CreatePost(ctx context.Context, req *dto.CreatePostReq
 	return &newPost, nil
 }
 
-func (s *PostServiceImpl) GetPostDetail(ctx context.Context, postID int) (*dto.PostDetailData, error) {
+func (s *PostServiceImpl) GetPostDetail(ctx context.Context, postID int) (*dto.PostDetailResponse, error) {
 	post, err := s.postRepo.GetPostDetailByID(ctx, postID)
 	if err != nil {
 		return nil, err
@@ -131,7 +131,7 @@ func (s *PostServiceImpl) GetPostDetail(ctx context.Context, postID int) (*dto.P
 		}
 	}
 
-	return &dto.PostDetailData{
+	return &dto.PostDetailResponse{
 		Post:     post,
 		User:     userSummary,
 		Comments: postComments,
