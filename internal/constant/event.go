@@ -13,9 +13,9 @@ const (
 	EventOperationDelete = "DELETE"
 	EventOperationUpdate = "UPDATE"
 
-	EventEntityTypePost       = "POST"
-	EventEntityTypeUser       = "USER"
-	EventEntityTypeCommunity  = "COMMUNITY"
-	EventEntityTypeUniversity = "UNIVERSITY"
-	EventEntityTypeMajor      = "MAJOR"
+	EventEntityTypePost       = "post"
+	EventEntityTypeUser       = "user"
+	EventEntityTypeCommunity  = "community"
+	EventEntityTypeUniversity = "university"
+	EventEntityTypeMajor      = "major"
 )

@@ -3,10 +3,13 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
+	"github.com/temuka-api-service/internal/constant"
 	"github.com/temuka-api-service/internal/dto"
 	"github.com/temuka-api-service/internal/model"
+	"github.com/temuka-api-service/internal/publisher"
 	"github.com/temuka-api-service/internal/repository"
 )
 
@@ -22,12 +25,14 @@ type CommunityService interface {
 }
 
 type CommunityServiceImpl struct {
-	CommunityRepository repository.CommunityRepository
+	CommunityRepository  repository.CommunityRepository
+	searchIndexPublisher publisher.SearchIndexPublisher
 }
 
-func NewCommunityService(repo repository.CommunityRepository) CommunityService {
+func NewCommunityService(repo repository.CommunityRepository, searchIndexPublisher publisher.SearchIndexPublisher) CommunityService {
 	return &CommunityServiceImpl{
-		CommunityRepository: repo,
+		CommunityRepository:  repo,
+		searchIndexPublisher: searchIndexPublisher,
 	}
 }
 
@@ -47,6 +52,19 @@ func (s *CommunityServiceImpl) CreateCommunity(ctx context.Context, data dto.Cre
 	if err := s.CommunityRepository.CreateCommunity(ctx, &newCommunity); err != nil {
 		return nil, errors.New("error creating community")
 	}
+
+	go s.searchIndexPublisher.PublishSyncEvent(
+		constant.EventOperationCreate,
+		constant.EventEntityTypeCommunity,
+		fmt.Sprintf("%d", newCommunity.ID),
+		map[string]interface{}{
+			"title":            newCommunity.Name,
+			"content":          newCommunity.Description,
+			"icon":             newCommunity.LogoPicture,
+			"slug":             "comm/" + newCommunity.Slug,
+			"score_multiplier": float64(0),
+		},
+	)
 
 	return &newCommunity, nil
 }
@@ -71,6 +89,19 @@ func (s *CommunityServiceImpl) UpdateCommunity(ctx context.Context, id int, data
 	if err := s.CommunityRepository.UpdateCommunity(ctx, id, &updated); err != nil {
 		return nil, errors.New("error updating community")
 	}
+
+	go s.searchIndexPublisher.PublishSyncEvent(
+		constant.EventOperationUpdate,
+		constant.EventEntityTypeCommunity,
+		fmt.Sprintf("%d", id),
+		map[string]interface{}{
+			"title":   updated.Name,
+			"content": updated.Description,
+			"icon":    updated.LogoPicture,
+			"slug":    "comm/" + updated.Slug,
+		},
+	)
+
 	return &updated, nil
 }
 
@@ -78,6 +109,14 @@ func (s *CommunityServiceImpl) DeleteCommunity(ctx context.Context, id int) erro
 	if err := s.CommunityRepository.DeleteCommunity(ctx, id); err != nil {
 		return errors.New("error deleting community")
 	}
+
+	go s.searchIndexPublisher.PublishSyncEvent(
+		constant.EventOperationDelete,
+		constant.EventEntityTypeCommunity,
+		fmt.Sprintf("%d", id),
+		nil,
+	)
+
 	return nil
 }
 
@@ -111,6 +150,15 @@ func (s *CommunityServiceImpl) JoinCommunity(ctx context.Context, id int, data d
 	if err := s.CommunityRepository.UpdateCommunity(ctx, id, community); err != nil {
 		return errors.New("error updating community member count")
 	}
+
+	go s.searchIndexPublisher.PublishSyncEvent(
+		constant.EventOperationUpdate,
+		constant.EventEntityTypeCommunity,
+		fmt.Sprintf("%d", id),
+		map[string]interface{}{
+			"score_multiplier": community.MembersCount,
+		},
+	)
 
 	return nil
 }

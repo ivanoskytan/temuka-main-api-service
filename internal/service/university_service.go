@@ -3,10 +3,13 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
+	"github.com/temuka-api-service/internal/constant"
 	"github.com/temuka-api-service/internal/dto"
 	"github.com/temuka-api-service/internal/model"
+	"github.com/temuka-api-service/internal/publisher"
 	"github.com/temuka-api-service/internal/repository"
 )
 
@@ -22,12 +25,14 @@ type UniversityService interface {
 type UniversityServiceImpl struct {
 	UniversityRepository repository.UniversityRepository
 	ReviewRepository     repository.ReviewRepository
+	searchIndexPublisher publisher.SearchIndexPublisher
 }
 
-func NewUniversityService(universityRepo repository.UniversityRepository, reviewRepo repository.ReviewRepository) UniversityService {
+func NewUniversityService(universityRepo repository.UniversityRepository, reviewRepo repository.ReviewRepository, searchIndexPublisher publisher.SearchIndexPublisher) UniversityService {
 	return &UniversityServiceImpl{
 		UniversityRepository: universityRepo,
 		ReviewRepository:     reviewRepo,
+		searchIndexPublisher: searchIndexPublisher,
 	}
 }
 
@@ -50,6 +55,18 @@ func (s *UniversityServiceImpl) AddUniversity(ctx context.Context, req dto.AddUn
 	if err := s.UniversityRepository.CreateUniversity(ctx, &university); err != nil {
 		return nil, errors.New("failed to create university")
 	}
+
+	go s.searchIndexPublisher.PublishSyncEvent(
+		constant.EventOperationCreate,
+		constant.EventEntityTypeUniversity,
+		fmt.Sprintf("%d", university.ID),
+		map[string]interface{}{
+			"title":            university.Name,
+			"content":          university.Summary,
+			"icon":             university.Logo,
+			"score_multiplier": 0,
+		},
+	)
 
 	return &university, nil
 }
@@ -76,6 +93,17 @@ func (s *UniversityServiceImpl) UpdateUniversity(ctx context.Context, id int, re
 	if err := s.UniversityRepository.UpdateUniversity(ctx, id, existing); err != nil {
 		return nil, errors.New("failed to update university")
 	}
+
+	go s.searchIndexPublisher.PublishSyncEvent(
+		constant.EventOperationUpdate,
+		constant.EventEntityTypeUniversity,
+		fmt.Sprintf("%d", id),
+		map[string]interface{}{
+			"title":   existing.Name,
+			"content": existing.Summary,
+			"icon":    existing.Logo,
+		},
+	)
 
 	return existing, nil
 }
@@ -128,6 +156,15 @@ func (s *UniversityServiceImpl) AddReview(ctx context.Context, req dto.AddReview
 	if err := s.UniversityRepository.UpdateUniversity(ctx, req.UniversityID, university); err != nil {
 		return nil, errors.New("failed to update university rating")
 	}
+
+	go s.searchIndexPublisher.PublishSyncEvent(
+		constant.EventOperationUpdate,
+		constant.EventEntityTypeUniversity,
+		fmt.Sprintf("%d", university.ID),
+		map[string]interface{}{
+			"score_multiplier": *university.TotalReviews,
+		},
+	)
 
 	return &review, nil
 }

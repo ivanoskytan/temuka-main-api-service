@@ -3,10 +3,13 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
+	"github.com/temuka-api-service/internal/constant"
 	"github.com/temuka-api-service/internal/dto"
 	"github.com/temuka-api-service/internal/model"
+	"github.com/temuka-api-service/internal/publisher"
 	"github.com/temuka-api-service/internal/repository"
 )
 
@@ -20,12 +23,14 @@ type UserService interface {
 }
 
 type UserServiceImpl struct {
-	UserRepository repository.UserRepository
+	UserRepository       repository.UserRepository
+	searchIndexPublisher publisher.SearchIndexPublisher
 }
 
-func NewUserService(userRepository repository.UserRepository) UserService {
+func NewUserService(userRepository repository.UserRepository, searchIndexPublisher publisher.SearchIndexPublisher) UserService {
 	return &UserServiceImpl{
-		UserRepository: userRepository,
+		UserRepository:       userRepository,
+		searchIndexPublisher: searchIndexPublisher,
 	}
 }
 
@@ -99,6 +104,20 @@ func (s *UserServiceImpl) FollowUser(ctx context.Context, data dto.FollowUserDTO
 	if err := s.UserRepository.CreateUserFollow(ctx, &newFollow); err != nil {
 		return errors.New("error following user")
 	}
+
+	go func() {
+		followers, err := s.UserRepository.GetFollowers(ctx, data.TargetID)
+		if err == nil {
+			s.searchIndexPublisher.PublishSyncEvent(
+				constant.EventOperationUpdate,
+				constant.EventEntityTypeUser,
+				fmt.Sprintf("%d", data.TargetID),
+				map[string]interface{}{
+					"score_multiplier": float64(len(followers)),
+				},
+			)
+		}
+	}()
 
 	return nil
 }

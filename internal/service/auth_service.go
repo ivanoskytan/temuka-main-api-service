@@ -9,6 +9,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/temuka-api-service/internal/dto"
 	"github.com/temuka-api-service/internal/model"
+	"github.com/temuka-api-service/internal/publisher"
 	"github.com/temuka-api-service/internal/repository"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -20,10 +21,11 @@ type AuthService interface {
 }
 
 type AuthServiceImpl struct {
-	UserRepository repository.UserRepository
+	UserRepository       repository.UserRepository
+	searchIndexPublisher publisher.SearchIndexPublisher
 }
 
-func NewAuthService(userRepository repository.UserRepository) AuthService {
+func NewAuthService(userRepository repository.UserRepository, searchIndexPublisher publisher.SearchIndexPublisher) AuthService {
 	return &AuthServiceImpl{
 		UserRepository: userRepository,
 	}

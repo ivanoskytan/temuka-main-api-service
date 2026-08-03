@@ -90,12 +90,6 @@ func (s *PostServiceImpl) CreatePost(ctx context.Context, req *dto.CreatePostReq
 		}
 	}
 
-	go s.searchIndexPublisher.PublishSyncEvent(constant.EventOperationCreate, constant.EventEntityTypePost, fmt.Sprintf("%d", newPost.ID), map[string]interface{}{
-		"title":       newPost.Title,
-		"description": newPost.Description,
-		"user_id":     newPost.UserID,
-	})
-
 	return &newPost, nil
 }
 
@@ -143,20 +137,38 @@ func (s *PostServiceImpl) GetUserPosts(ctx context.Context, userID int) ([]model
 }
 
 func (s *PostServiceImpl) UpdatePost(ctx context.Context, postID int, req *dto.UpdatePostRequest) (*model.Post, error) {
-	updated := model.Post{
+	updatedPost := model.Post{
 		UserID:      req.UserID,
 		Title:       req.Title,
 		Description: req.Description,
 	}
 
-	if err := s.postRepo.UpdatePost(ctx, postID, &updated); err != nil {
+	if err := s.postRepo.UpdatePost(ctx, postID, &updatedPost); err != nil {
 		return nil, errors.New("error updating post")
 	}
 
-	return &updated, nil
+	go s.searchIndexPublisher.PublishSyncEvent(
+		constant.EventOperationUpdate,
+		constant.EventEntityTypePost,
+		fmt.Sprintf("%d", updatedPost.ID),
+		map[string]interface{}{
+			"title":   updatedPost.Title,
+			"content": updatedPost.Description,
+			"user_id": updatedPost.UserID,
+		},
+	)
+
+	return &updatedPost, nil
 }
 
 func (s *PostServiceImpl) DeletePost(ctx context.Context, postID int) error {
+	go s.searchIndexPublisher.PublishSyncEvent(
+		constant.EventOperationUpdate,
+		constant.EventEntityTypePost,
+		fmt.Sprintf("%d", postID),
+		nil,
+	)
+
 	return s.postRepo.DeletePost(ctx, postID)
 }
 
@@ -207,7 +219,7 @@ func (s *PostServiceImpl) LikePost(ctx context.Context, postID, userID int) erro
 
 	for _, u := range post.Likes {
 		if u.ID == userID {
-			return nil // already liked
+			return nil
 		}
 	}
 
@@ -229,5 +241,28 @@ func (s *PostServiceImpl) LikePost(ctx context.Context, postID, userID int) erro
 		Message: liker.Username + " liked your post: " + post.Title,
 		Read:    false,
 	}
+
+	var icon, slug string
+
+	if post.CommunityPost.Community != nil && post.CommunityPost.Community.ID != 0 {
+		icon = post.CommunityPost.Community.LogoPicture
+		slug = "comm/" + post.CommunityPost.Community.Name
+	} else if post.User != nil {
+		icon = post.User.ProfilePicture
+		slug = "user/" + post.User.Username
+	}
+
+	go s.searchIndexPublisher.PublishSyncEvent(
+		constant.EventOperationUpdate,
+		constant.EventEntityTypePost,
+		fmt.Sprintf("%d", postID),
+		map[string]interface{}{
+			"title":            post.Title,
+			"content":          post.Description,
+			"score_multiplier": len(post.Likes),
+			"icon":             icon,
+			"slug":             slug,
+		},
+	)
 	return s.notificationRepo.CreateNotification(ctx, &notification)
 }

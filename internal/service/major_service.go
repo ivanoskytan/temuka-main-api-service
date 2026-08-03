@@ -3,9 +3,12 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 
+	"github.com/temuka-api-service/internal/constant"
 	"github.com/temuka-api-service/internal/dto"
 	"github.com/temuka-api-service/internal/model"
+	"github.com/temuka-api-service/internal/publisher"
 	"github.com/temuka-api-service/internal/repository"
 )
 
@@ -19,12 +22,14 @@ type MajorService interface {
 }
 
 type MajorServiceImpl struct {
-	MajorRepository repository.MajorRepository
+	MajorRepository      repository.MajorRepository
+	searchIndexPublisher publisher.SearchIndexPublisher
 }
 
-func NewMajorService(majorRepo repository.MajorRepository) MajorService {
+func NewMajorService(majorRepo repository.MajorRepository, searchIndexPublisher publisher.SearchIndexPublisher) MajorService {
 	return &MajorServiceImpl{
-		MajorRepository: majorRepo,
+		MajorRepository:      majorRepo,
+		searchIndexPublisher: searchIndexPublisher,
 	}
 }
 
@@ -41,6 +46,19 @@ func (s *MajorServiceImpl) AddMajor(ctx context.Context, req dto.AddMajorRequest
 	if err := s.MajorRepository.CreateMajor(ctx, &major); err != nil {
 		return nil, errors.New("failed to create major record")
 	}
+
+	go s.searchIndexPublisher.PublishSyncEvent(
+		constant.EventOperationCreate,
+		constant.EventEntityTypeMajor,
+		fmt.Sprintf("%d", major.ID),
+		map[string]interface{}{
+			"title":            major.Name,
+			"content":          major.Description,
+			"icon":             major.University.Logo,
+			"slug":             fmt.Sprintf("major/%d", major.ID),
+			"score_multiplier": 0,
+		},
+	)
 	return &major, nil
 }
 
@@ -110,6 +128,15 @@ func (s *MajorServiceImpl) AddMajorReview(ctx context.Context, req dto.AddMajorR
 	if err := s.MajorRepository.UpdateMajor(ctx, req.MajorID, major); err != nil {
 		return nil, errors.New("failed to update major moving averages")
 	}
+
+	go s.searchIndexPublisher.PublishSyncEvent(
+		constant.EventOperationUpdate,
+		constant.EventEntityTypeMajor,
+		fmt.Sprintf("%d", major.ID),
+		map[string]interface{}{
+			"score_multiplier": *major.TotalReviews,
+		},
+	)
 
 	return &review, nil
 }

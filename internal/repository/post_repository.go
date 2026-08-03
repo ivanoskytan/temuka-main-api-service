@@ -34,7 +34,12 @@ func (r *PostRepositoryImpl) CreatePost(ctx context.Context, post *model.Post) e
 func (r *PostRepositoryImpl) GetPostDetailByID(ctx context.Context, id int) (*model.Post, error) {
 	var post model.Post
 
-	if err := r.db.DB.WithContext(ctx).First(&post, id).Error; err != nil {
+	if err := r.db.DB.WithContext(ctx).
+		Preload("User").
+		Preload("Likes").
+		Preload("CommunityPost").
+		Preload("CommunityPost.Community").
+		First(&post, id).Error; err != nil {
 		return nil, fmt.Errorf("failed to get post detail: %w", err)
 	}
 
