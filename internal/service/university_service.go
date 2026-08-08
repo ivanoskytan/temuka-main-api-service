@@ -25,14 +25,14 @@ type UniversityService interface {
 type UniversityServiceImpl struct {
 	UniversityRepository repository.UniversityRepository
 	ReviewRepository     repository.ReviewRepository
-	searchIndexPublisher publisher.SearchIndexPublisher
+	SuggestionPublisher  publisher.SuggestionPublisher
 }
 
-func NewUniversityService(universityRepo repository.UniversityRepository, reviewRepo repository.ReviewRepository, searchIndexPublisher publisher.SearchIndexPublisher) UniversityService {
+func NewUniversityService(universityRepo repository.UniversityRepository, reviewRepo repository.ReviewRepository, suggestionPublisher publisher.SuggestionPublisher) UniversityService {
 	return &UniversityServiceImpl{
 		UniversityRepository: universityRepo,
 		ReviewRepository:     reviewRepo,
-		searchIndexPublisher: searchIndexPublisher,
+		SuggestionPublisher:  suggestionPublisher,
 	}
 }
 
@@ -56,15 +56,14 @@ func (s *UniversityServiceImpl) AddUniversity(ctx context.Context, req dto.AddUn
 		return nil, errors.New("failed to create university")
 	}
 
-	go s.searchIndexPublisher.PublishSyncEvent(
+	go s.SuggestionPublisher.PublishSuggestionEvent(
 		constant.EventOperationCreate,
 		constant.EventEntityTypeUniversity,
 		fmt.Sprintf("%d", university.ID),
 		map[string]interface{}{
-			"title":            university.Name,
-			"content":          university.Summary,
-			"icon":             university.Logo,
-			"score_multiplier": 0,
+			"title":   university.Name,
+			"content": university.Summary,
+			"icon":    university.Logo,
 		},
 	)
 
@@ -94,7 +93,7 @@ func (s *UniversityServiceImpl) UpdateUniversity(ctx context.Context, id int, re
 		return nil, errors.New("failed to update university")
 	}
 
-	go s.searchIndexPublisher.PublishSyncEvent(
+	go s.SuggestionPublisher.PublishSuggestionEvent(
 		constant.EventOperationUpdate,
 		constant.EventEntityTypeUniversity,
 		fmt.Sprintf("%d", id),
@@ -157,13 +156,11 @@ func (s *UniversityServiceImpl) AddReview(ctx context.Context, req dto.AddReview
 		return nil, errors.New("failed to update university rating")
 	}
 
-	go s.searchIndexPublisher.PublishSyncEvent(
+	go s.SuggestionPublisher.PublishSuggestionEvent(
 		constant.EventOperationUpdate,
 		constant.EventEntityTypeUniversity,
 		fmt.Sprintf("%d", university.ID),
-		map[string]interface{}{
-			"score_multiplier": *university.TotalReviews,
-		},
+		map[string]interface{}{},
 	)
 
 	return &review, nil

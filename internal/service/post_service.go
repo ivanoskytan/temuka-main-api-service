@@ -26,13 +26,13 @@ type PostService interface {
 }
 
 type PostServiceImpl struct {
-	postRepo             repository.PostRepository
-	userRepo             repository.UserRepository
-	commentRepo          repository.CommentRepository
-	notificationRepo     repository.NotificationRepository
-	communityRepo        repository.CommunityRepository
-	redis                key_value_store.RedisWrapper
-	searchIndexPublisher publisher.SearchIndexPublisher
+	postRepo            repository.PostRepository
+	userRepo            repository.UserRepository
+	commentRepo         repository.CommentRepository
+	notificationRepo    repository.NotificationRepository
+	communityRepo       repository.CommunityRepository
+	redis               key_value_store.RedisWrapper
+	suggestionPublisher publisher.SuggestionPublisher
 }
 
 func NewPostService(
@@ -42,16 +42,16 @@ func NewPostService(
 	notificationRepo repository.NotificationRepository,
 	communityRepo repository.CommunityRepository,
 	redis key_value_store.RedisWrapper,
-	searchIndexPublisher publisher.SearchIndexPublisher,
+	suggestionPublisher publisher.SuggestionPublisher,
 ) PostService {
 	return &PostServiceImpl{
-		postRepo:             postRepo,
-		userRepo:             userRepo,
-		commentRepo:          commentRepo,
-		notificationRepo:     notificationRepo,
-		communityRepo:        communityRepo,
-		redis:                redis,
-		searchIndexPublisher: searchIndexPublisher,
+		postRepo:            postRepo,
+		userRepo:            userRepo,
+		commentRepo:         commentRepo,
+		notificationRepo:    notificationRepo,
+		communityRepo:       communityRepo,
+		redis:               redis,
+		suggestionPublisher: suggestionPublisher,
 	}
 }
 
@@ -147,7 +147,7 @@ func (s *PostServiceImpl) UpdatePost(ctx context.Context, postID int, req *dto.U
 		return nil, errors.New("error updating post")
 	}
 
-	go s.searchIndexPublisher.PublishSyncEvent(
+	go s.suggestionPublisher.PublishSuggestionEvent(
 		constant.EventOperationUpdate,
 		constant.EventEntityTypePost,
 		fmt.Sprintf("%d", updatedPost.ID),
@@ -162,7 +162,7 @@ func (s *PostServiceImpl) UpdatePost(ctx context.Context, postID int, req *dto.U
 }
 
 func (s *PostServiceImpl) DeletePost(ctx context.Context, postID int) error {
-	go s.searchIndexPublisher.PublishSyncEvent(
+	go s.suggestionPublisher.PublishSuggestionEvent(
 		constant.EventOperationUpdate,
 		constant.EventEntityTypePost,
 		fmt.Sprintf("%d", postID),
@@ -252,16 +252,15 @@ func (s *PostServiceImpl) LikePost(ctx context.Context, postID, userID int) erro
 		slug = "user/" + post.User.Username
 	}
 
-	go s.searchIndexPublisher.PublishSyncEvent(
+	go s.suggestionPublisher.PublishSuggestionEvent(
 		constant.EventOperationUpdate,
 		constant.EventEntityTypePost,
 		fmt.Sprintf("%d", postID),
 		map[string]interface{}{
-			"title":            post.Title,
-			"content":          post.Description,
-			"score_multiplier": len(post.Likes),
-			"icon":             icon,
-			"slug":             slug,
+			"title":   post.Title,
+			"content": post.Description,
+			"icon":    icon,
+			"slug":    slug,
 		},
 	)
 	return s.notificationRepo.CreateNotification(ctx, &notification)

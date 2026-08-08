@@ -25,14 +25,14 @@ type CommunityService interface {
 }
 
 type CommunityServiceImpl struct {
-	CommunityRepository  repository.CommunityRepository
-	searchIndexPublisher publisher.SearchIndexPublisher
+	CommunityRepository repository.CommunityRepository
+	SuggestionPublisher publisher.SuggestionPublisher
 }
 
-func NewCommunityService(repo repository.CommunityRepository, searchIndexPublisher publisher.SearchIndexPublisher) CommunityService {
+func NewCommunityService(repo repository.CommunityRepository, suggestionPublisher publisher.SuggestionPublisher) CommunityService {
 	return &CommunityServiceImpl{
-		CommunityRepository:  repo,
-		searchIndexPublisher: searchIndexPublisher,
+		CommunityRepository: repo,
+		SuggestionPublisher: suggestionPublisher,
 	}
 }
 
@@ -53,16 +53,15 @@ func (s *CommunityServiceImpl) CreateCommunity(ctx context.Context, data dto.Cre
 		return nil, errors.New("error creating community")
 	}
 
-	go s.searchIndexPublisher.PublishSyncEvent(
+	go s.SuggestionPublisher.PublishSuggestionEvent(
 		constant.EventOperationCreate,
 		constant.EventEntityTypeCommunity,
 		fmt.Sprintf("%d", newCommunity.ID),
 		map[string]interface{}{
-			"title":            newCommunity.Name,
-			"content":          newCommunity.Description,
-			"icon":             newCommunity.LogoPicture,
-			"slug":             "comm/" + newCommunity.Slug,
-			"score_multiplier": float64(0),
+			"title":   newCommunity.Name,
+			"content": newCommunity.Description,
+			"icon":    newCommunity.LogoPicture,
+			"slug":    "comm/" + newCommunity.Slug,
 		},
 	)
 
@@ -90,7 +89,7 @@ func (s *CommunityServiceImpl) UpdateCommunity(ctx context.Context, id int, data
 		return nil, errors.New("error updating community")
 	}
 
-	go s.searchIndexPublisher.PublishSyncEvent(
+	go s.SuggestionPublisher.PublishSuggestionEvent(
 		constant.EventOperationUpdate,
 		constant.EventEntityTypeCommunity,
 		fmt.Sprintf("%d", id),
@@ -110,7 +109,7 @@ func (s *CommunityServiceImpl) DeleteCommunity(ctx context.Context, id int) erro
 		return errors.New("error deleting community")
 	}
 
-	go s.searchIndexPublisher.PublishSyncEvent(
+	go s.SuggestionPublisher.PublishSuggestionEvent(
 		constant.EventOperationDelete,
 		constant.EventEntityTypeCommunity,
 		fmt.Sprintf("%d", id),
@@ -151,13 +150,11 @@ func (s *CommunityServiceImpl) JoinCommunity(ctx context.Context, id int, data d
 		return errors.New("error updating community member count")
 	}
 
-	go s.searchIndexPublisher.PublishSyncEvent(
+	go s.SuggestionPublisher.PublishSuggestionEvent(
 		constant.EventOperationUpdate,
 		constant.EventEntityTypeCommunity,
 		fmt.Sprintf("%d", id),
-		map[string]interface{}{
-			"score_multiplier": community.MembersCount,
-		},
+		map[string]interface{}{},
 	)
 
 	return nil

@@ -21,13 +21,14 @@ type AuthService interface {
 }
 
 type AuthServiceImpl struct {
-	UserRepository       repository.UserRepository
-	searchIndexPublisher publisher.SearchIndexPublisher
+	UserRepository      repository.UserRepository
+	SuggestionPublisher publisher.SuggestionPublisher
 }
 
-func NewAuthService(userRepository repository.UserRepository, searchIndexPublisher publisher.SearchIndexPublisher) AuthService {
+func NewAuthService(userRepository repository.UserRepository, suggestionPublisher publisher.SuggestionPublisher) AuthService {
 	return &AuthServiceImpl{
-		UserRepository: userRepository,
+		UserRepository:      userRepository,
+		SuggestionPublisher: suggestionPublisher,
 	}
 }
 

@@ -23,14 +23,14 @@ type UserService interface {
 }
 
 type UserServiceImpl struct {
-	UserRepository       repository.UserRepository
-	searchIndexPublisher publisher.SearchIndexPublisher
+	UserRepository      repository.UserRepository
+	SuggestionPublisher publisher.SuggestionPublisher
 }
 
-func NewUserService(userRepository repository.UserRepository, searchIndexPublisher publisher.SearchIndexPublisher) UserService {
+func NewUserService(userRepository repository.UserRepository, suggestionPublisher publisher.SuggestionPublisher) UserService {
 	return &UserServiceImpl{
-		UserRepository:       userRepository,
-		searchIndexPublisher: searchIndexPublisher,
+		UserRepository:      userRepository,
+		SuggestionPublisher: suggestionPublisher,
 	}
 }
 
@@ -105,19 +105,12 @@ func (s *UserServiceImpl) FollowUser(ctx context.Context, data dto.FollowUserDTO
 		return errors.New("error following user")
 	}
 
-	go func() {
-		followers, err := s.UserRepository.GetFollowers(ctx, data.TargetID)
-		if err == nil {
-			s.searchIndexPublisher.PublishSyncEvent(
-				constant.EventOperationUpdate,
-				constant.EventEntityTypeUser,
-				fmt.Sprintf("%d", data.TargetID),
-				map[string]interface{}{
-					"score_multiplier": float64(len(followers)),
-				},
-			)
-		}
-	}()
+	go s.SuggestionPublisher.PublishSuggestionEvent(
+		constant.EventOperationUpdate,
+		constant.EventEntityTypeUser,
+		fmt.Sprintf("%d", data.TargetID),
+		map[string]interface{}{},
+	)
 
 	return nil
 }

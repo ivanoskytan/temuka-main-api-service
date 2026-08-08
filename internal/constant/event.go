@@ -1,17 +1,16 @@
 package constant
 
 const (
-	SearchExchange         = "temuka_search_exchange"
-	RecommendationExchange = "temuka_recommendation_exchange"
-	AnalyticsExchange      = "temuka_analytics_exchange"
+	SuggestionExchange = "temuka_suggestion_exchange"
 
-	SearcSyncRoutingKey            = "search.sync"
-	RecommendationUpdateRoutingKey = "recommendation.update"
-	AnalyticsEventRoutingKey       = "analytics.event"
+	SuggestionSyncRoutingKey = "suggestion.sync"
 
 	EventOperationCreate = "CREATE"
 	EventOperationDelete = "DELETE"
 	EventOperationUpdate = "UPDATE"
+	EventOperationView   = "VIEW"
+	EventOperationLike   = "LIKE"
+	EventOperationJoin   = "JOIN"
 
 	EventEntityTypePost       = "post"
 	EventEntityTypeUser       = "user"

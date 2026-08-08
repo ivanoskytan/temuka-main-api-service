@@ -22,14 +22,14 @@ type MajorService interface {
 }
 
 type MajorServiceImpl struct {
-	MajorRepository      repository.MajorRepository
-	searchIndexPublisher publisher.SearchIndexPublisher
+	MajorRepository     repository.MajorRepository
+	SuggestionPublisher publisher.SuggestionPublisher
 }
 
-func NewMajorService(majorRepo repository.MajorRepository, searchIndexPublisher publisher.SearchIndexPublisher) MajorService {
+func NewMajorService(majorRepo repository.MajorRepository, suggestionPublisher publisher.SuggestionPublisher) MajorService {
 	return &MajorServiceImpl{
-		MajorRepository:      majorRepo,
-		searchIndexPublisher: searchIndexPublisher,
+		MajorRepository:     majorRepo,
+		SuggestionPublisher: suggestionPublisher,
 	}
 }
 
@@ -47,16 +47,15 @@ func (s *MajorServiceImpl) AddMajor(ctx context.Context, req dto.AddMajorRequest
 		return nil, errors.New("failed to create major record")
 	}
 
-	go s.searchIndexPublisher.PublishSyncEvent(
+	go s.SuggestionPublisher.PublishSuggestionEvent(
 		constant.EventOperationCreate,
 		constant.EventEntityTypeMajor,
 		fmt.Sprintf("%d", major.ID),
 		map[string]interface{}{
-			"title":            major.Name,
-			"content":          major.Description,
-			"icon":             major.University.Logo,
-			"slug":             fmt.Sprintf("major/%d", major.ID),
-			"score_multiplier": 0,
+			"title":   major.Name,
+			"content": major.Description,
+			"icon":    major.University.Logo,
+			"slug":    fmt.Sprintf("major/%d", major.ID),
 		},
 	)
 	return &major, nil
@@ -129,13 +128,11 @@ func (s *MajorServiceImpl) AddMajorReview(ctx context.Context, req dto.AddMajorR
 		return nil, errors.New("failed to update major moving averages")
 	}
 
-	go s.searchIndexPublisher.PublishSyncEvent(
+	go s.SuggestionPublisher.PublishSuggestionEvent(
 		constant.EventOperationUpdate,
 		constant.EventEntityTypeMajor,
 		fmt.Sprintf("%d", major.ID),
-		map[string]interface{}{
-			"score_multiplier": *major.TotalReviews,
-		},
+		map[string]interface{}{},
 	)
 
 	return &review, nil
