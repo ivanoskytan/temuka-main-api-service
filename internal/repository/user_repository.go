@@ -44,7 +44,7 @@ func (r *UserRepositoryImpl) CreateUserFollow(ctx context.Context, userFollow *m
 func (r *UserRepositoryImpl) GetUserByID(ctx context.Context, id int) (*model.User, error) {
 	var user model.User
 
-	if err := r.db.DB.WithContext(ctx).First(&user, id).Error; err != nil {
+	if err := r.db.DB.WithContext(ctx).Preload("University").First(&user, id).Error; err != nil {
 		return nil, fmt.Errorf("failed to get user by id: %w", err)
 	}
 

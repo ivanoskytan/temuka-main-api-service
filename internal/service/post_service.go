@@ -60,6 +60,20 @@ func (s *PostServiceImpl) CreatePost(ctx context.Context, req *dto.CreatePostReq
 		Title:       req.Title,
 		Description: req.Description,
 		UserID:      req.UserID,
+		IsAnonymous: req.IsAnonymous,
+	}
+
+	if req.IsAnonymous {
+		user, err := s.userRepo.GetUserByID(ctx, req.UserID)
+		if err != nil {
+			return nil, errors.New("error fetching user for anonymous post")
+		}
+
+		if user.UniversityID == nil || user.University == nil {
+			return nil, errors.New("user must belong to a university to post anonymously")
+		}
+
+		newPost.UniversityOrigin = user.University.Name
 	}
 
 	if err := s.postRepo.CreatePost(ctx, &newPost); err != nil {

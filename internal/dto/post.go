@@ -13,6 +13,7 @@ type CreatePostRequest struct {
 	CommunityID *int    `json:"community_id"`
 	Mark        *string `json:"mark"`
 	Topic       *string `json:"topic"`
+	IsAnonymous bool    `json:"is_anonymous"`
 }
 
 type UpdatePostRequest struct {

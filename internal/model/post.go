@@ -14,6 +14,9 @@ type Post struct {
 	User          *User          `gorm:"foreignKey:UserID"`
 	CommunityPost *CommunityPost `gorm:"foreignKey:PostID"`
 
+	IsAnonymous      bool   `gorm:"column:is_anonymous;default:false"`
+	UniversityOrigin string `gorm:"column:university_origin"`
+
 	Title         string         `gorm:"column:title"`
 	Description   string         `gorm:"column:desc"`
 	Image         string         `gorm:"column:image"`
