@@ -190,7 +190,11 @@ func (r *CommunityRepositoryImpl) GetUserJoinedCommunities(ctx context.Context, 
 
 func (r *CommunityRepositoryImpl) GetCommunityDetailBySlug(ctx context.Context, slug string) (*model.Community, error) {
 	var community model.Community
-	err := r.db.Where(ctx, "slug = ?", slug).First(&community).Error
+	err := r.db.DB.WithContext(ctx).
+		Preload("CommunityRules").
+		Preload("Moderators").
+		Where(ctx, "slug = ?", slug).
+		First(&community).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get community detail by slug: %w", err)
 	}

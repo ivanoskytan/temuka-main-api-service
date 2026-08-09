@@ -30,6 +30,7 @@ func Routes(db database.PostgresWrapper, redis keyValueStore.RedisWrapper, stora
 	reviewRepo := repository.NewReviewRepository(db)
 	locationRepo := repository.NewLocationRepository(db)
 	conversationRepo := repository.NewConversationRepository(db)
+	communityRuleRepo := repository.NewCommunityRuleRepository(db)
 
 	// Init publishers
 	searchIndexPublisher := publisher.NewSearchIndexPublisher(rmq)
@@ -40,7 +41,7 @@ func Routes(db database.PostgresWrapper, redis keyValueStore.RedisWrapper, stora
 	postService := service.NewPostService(postRepo, userRepo, commentRepo, notificationRepo, communityRepo, redis, searchIndexPublisher)
 	notificationService := service.NewNotificationService(notificationRepo)
 	commentService := service.NewCommentService(commentRepo, postRepo, notificationRepo, reportRepo)
-	communityService := service.NewCommunityService(communityRepo, searchIndexPublisher)
+	communityService := service.NewCommunityService(db, communityRepo, communityRuleRepo, moderatorRepo, searchIndexPublisher)
 	moderatorService := service.NewModeratorService(moderatorRepo, notificationRepo)
 	reportService := service.NewReportService(reportRepo)
 	universityService := service.NewUniversityService(universityRepo, reviewRepo, searchIndexPublisher)
@@ -122,6 +123,8 @@ func Routes(db database.PostgresWrapper, redis keyValueStore.RedisWrapper, stora
 	reportRouter := router.PathPrefix("/api/report").Subrouter()
 	reportRouter.Use(middleware.CheckAuth)
 	reportRouter.HandleFunc("", reportHandler.CreateReport).Methods("POST")
+	reportRouter.HandleFunc("/community/{community_id}", reportHandler.GetReportsByCommunity).Methods("GET")
+	reportRouter.HandleFunc("/{id}", reportHandler.UpdateReport).Methods("PUT")
 	reportRouter.HandleFunc("/{id}", reportHandler.DeleteReport).Methods("DELETE")
 
 	universityRouter := router.PathPrefix("/api/university").Subrouter()

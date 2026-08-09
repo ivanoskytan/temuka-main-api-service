@@ -9,6 +9,20 @@ import (
 	"gorm.io/gorm"
 )
 
+type txKey struct{}
+
+func InjectTx(ctx context.Context, tx *gorm.DB) context.Context {
+	return context.WithValue(ctx, txKey{}, tx)
+}
+
+func ExtractTx(ctx context.Context, defaultDB *gorm.DB) *gorm.DB {
+	if tx, ok := ctx.Value(txKey{}).(*gorm.DB); ok {
+		return tx
+	}
+
+	return defaultDB
+}
+
 type PostgresWrapper struct {
 	DB *gorm.DB
 }
@@ -30,37 +44,48 @@ func NewPostgreSQL(pgHost, pgUser, pgPassword, pgPort, dbName string) (*Postgres
 }
 
 func (p *PostgresWrapper) Create(ctx context.Context, value interface{}) error {
-	return p.DB.WithContext(ctx).Create(value).Error
+	db := ExtractTx(ctx, p.DB)
+	return db.WithContext(ctx).Create(value).Error
 }
 
 func (p *PostgresWrapper) Save(ctx context.Context, value interface{}) error {
-	return p.DB.WithContext(ctx).Save(value).Error
+	db := ExtractTx(ctx, p.DB)
+	return db.WithContext(ctx).Save(value).Error
 }
 
 func (p *PostgresWrapper) Delete(ctx context.Context, value interface{}, conds ...interface{}) error {
-	return p.DB.WithContext(ctx).Delete(value, conds...).Error
+	db := ExtractTx(ctx, p.DB)
+	return db.WithContext(ctx).Delete(value, conds...).Error
 }
 
 func (p *PostgresWrapper) Model(ctx context.Context, value interface{}) *gorm.DB {
-	return p.DB.WithContext(ctx).Model(value)
+	db := ExtractTx(ctx, p.DB)
+	return db.WithContext(ctx).Model(value)
 }
 
 func (p *PostgresWrapper) First(ctx context.Context, dest interface{}, conds ...interface{}) error {
-	return p.DB.WithContext(ctx).First(dest, conds...).Error
+	db := ExtractTx(ctx, p.DB)
+	return db.WithContext(ctx).First(dest, conds...).Error
 }
 
 func (p *PostgresWrapper) Find(ctx context.Context, dest interface{}, conds ...interface{}) error {
-	return p.DB.WithContext(ctx).Find(dest, conds...).Error
+	db := ExtractTx(ctx, p.DB)
+	return db.WithContext(ctx).Find(dest, conds...).Error
 }
 
 func (p *PostgresWrapper) Where(ctx context.Context, query interface{}, args ...interface{}) *gorm.DB {
-	return p.DB.WithContext(ctx).Where(query, args...)
+	db := ExtractTx(ctx, p.DB)
+	return db.WithContext(ctx).Where(query, args...)
 }
 
 func (p *PostgresWrapper) Exec(ctx context.Context, query string, args ...interface{}) error {
-	return p.DB.WithContext(ctx).Exec(query, args...).Error
+	db := ExtractTx(ctx, p.DB)
+	return db.WithContext(ctx).Exec(query, args...).Error
 }
 
-func (p *PostgresWrapper) Transaction(ctx context.Context, fn func(tx *gorm.DB) error) error {
-	return p.DB.WithContext(ctx).Transaction(fn)
+func (p *PostgresWrapper) Transaction(ctx context.Context, fn func(txCtx context.Context) error) error {
+	return p.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		txCtx := InjectTx(ctx, tx)
+		return fn(txCtx)
+	})
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/temuka-api-service/internal/model"
 	"github.com/temuka-api-service/internal/publisher"
 	"github.com/temuka-api-service/internal/repository"
+	"github.com/temuka-api-service/util/database"
 )
 
 type CommunityService interface {
@@ -25,14 +26,21 @@ type CommunityService interface {
 }
 
 type CommunityServiceImpl struct {
-	CommunityRepository repository.CommunityRepository
-	SuggestionPublisher publisher.SuggestionPublisher
+	Database                database.PostgresWrapper
+	CommunityRepository     repository.CommunityRepository
+	CommunityRuleRepository repository.CommunityRuleRepository
+	ModeratorRepository     repository.ModeratorRepository
+	SuggestionPublisher     publisher.SuggestionPublisher
 }
 
-func NewCommunityService(repo repository.CommunityRepository, suggestionPublisher publisher.SuggestionPublisher) CommunityService {
+func NewCommunityService(db database.PostgresWrapper, communityRepo repository.CommunityRepository, communityRuleRepo repository.CommunityRuleRepository,
+	moderatorRepo repository.ModeratorRepository, suggestionPublisher publisher.SuggestionPublisher) CommunityService {
 	return &CommunityServiceImpl{
-		CommunityRepository: repo,
-		SuggestionPublisher: suggestionPublisher,
+		Database:                db,
+		CommunityRepository:     communityRepo,
+		CommunityRuleRepository: communityRuleRepo,
+		ModeratorRepository:     moderatorRepo,
+		SuggestionPublisher:     suggestionPublisher,
 	}
 }
 
@@ -47,10 +55,41 @@ func (s *CommunityServiceImpl) CreateCommunity(ctx context.Context, data dto.Cre
 		Description:  data.Description,
 		LogoPicture:  data.LogoPicture,
 		CoverPicture: data.CoverPicture,
+		MembersCount: 1,
 	}
 
-	if err := s.CommunityRepository.CreateCommunity(ctx, &newCommunity); err != nil {
-		return nil, errors.New("error creating community")
+	err := s.Database.Transaction(ctx, func(txCtx context.Context) error {
+		if err := s.CommunityRepository.CreateCommunity(txCtx, &newCommunity); err != nil {
+			return err
+		}
+
+		member := model.CommunityMember{
+			UserID:      data.UserID,
+			CommunityID: newCommunity.ID,
+		}
+		if err := s.CommunityRepository.AddCommunityMember(txCtx, &member); err != nil {
+			return err
+		}
+
+		if len(data.Rules) > 0 {
+			var rules []model.CommunityRule
+			for _, r := range data.Rules {
+				rules = append(rules, model.CommunityRule{
+					CommunityID: newCommunity.ID,
+					Title:       r.Title,
+					Description: r.Description,
+				})
+			}
+			if err := s.CommunityRuleRepository.CreateCommunityRules(txCtx, rules); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, errors.New("error creating community transaction")
 	}
 
 	go s.SuggestionPublisher.PublishSuggestionEvent(

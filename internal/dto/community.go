@@ -2,11 +2,19 @@ package dto
 
 import "time"
 
+type CreateCommunityRuleRequest struct {
+	Title       string `json:"title"`
+	Description string `json:"description"`
+}
+
 type CreateCommunityRequest struct {
-	Name         string `json:"name"`
-	Description  string `json:"description"`
-	LogoPicture  string `json:"logo_picture"`
-	CoverPicture string `json:"cover_picture"`
+	UserID int `json:"user_id"`
+
+	Name         string                       `json:"name"`
+	Description  string                       `json:"description"`
+	LogoPicture  string                       `json:"logo_picture"`
+	CoverPicture string                       `json:"cover_picture"`
+	Rules        []CreateCommunityRuleRequest `json:"rules"`
 }
 
 type UpdateCommunityRequest struct {

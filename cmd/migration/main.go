@@ -44,6 +44,7 @@ func main() {
 		&model.Review{},
 		&model.Major{},
 		&model.MajorReview{},
+		&model.CommunityRule{},
 	); err != nil {
 		log.Fatalf("Failed to auto-migrate database: %v", err)
 	}

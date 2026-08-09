@@ -6,19 +6,14 @@ import (
 	"gorm.io/gorm"
 )
 
-type CommunityMember struct {
+type CommunityRule struct {
 	gorm.Model
 	ID          int `gorm:"primary_key;column:id"`
-	UserID      int `gorm:"column:user_id"`
 	CommunityID int `gorm:"column:community_id"`
 
-	Banned          bool       `gorm:"column:banned;default:false"`
-	BannedExpiredAt *time.Time `gorm:"column:banned_expired_at"`
+	Title       string `gorm:"column:title"`
+	Description string `gorm:"column:description"`
 
 	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"`
 	UpdatedAt time.Time `gorm:"column:updated_at;autoCreateTime;autoUpdateTime"`
-}
-
-func (c *CommunityMember) TableName() string {
-	return "community_members"
 }
