@@ -35,6 +35,9 @@ type User struct {
 	Participants     []Participant     `gorm:"foreignKey:UserID"`
 	Notifications    []Notification    `gorm:"foreignKey:UserID"`
 	Reviews          []Review          `gorm:"foreignKey:UserID"`
+
+	LikedPosts []*Post `gorm:"many2many:post_likes;"`
+	SavedPosts []*Post `gorm:"many2many:post_saves;"`
 }
 
 func (u *User) TableName() string {

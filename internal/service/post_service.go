@@ -25,6 +25,8 @@ type PostService interface {
 	GetTimelinePosts(ctx context.Context, userID int) ([]model.Post, error)
 	LikePost(ctx context.Context, postID, userID int) error
 	UnlikePost(ctx context.Context, postID, userID int) error
+	SavePost(ctx context.Context, postID, userID int) error
+	UnsavePost(ctx context.Context, postID, userID int) error
 }
 
 type PostServiceImpl struct {
@@ -152,7 +154,7 @@ func (s *PostServiceImpl) GetPostDetail(ctx context.Context, postID int) (*dto.P
 }
 
 func (s *PostServiceImpl) GetUserPosts(ctx context.Context, userID int) ([]model.Post, error) {
-	return s.postRepo.GetPostsByUserID(ctx, userID)
+	return s.postRepo.GetPostsByUserId(ctx, userID)
 }
 
 func (s *PostServiceImpl) UpdatePost(ctx context.Context, postID int, req *dto.UpdatePostRequest) (*model.Post, error) {
@@ -202,7 +204,7 @@ func (s *PostServiceImpl) GetTimelinePosts(ctx context.Context, userID int) ([]m
 		return cached.Data, nil
 	}
 
-	userPosts, err := s.postRepo.GetPostsByUserID(ctx, userID)
+	userPosts, err := s.postRepo.GetPostsByUserId(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -214,7 +216,7 @@ func (s *PostServiceImpl) GetTimelinePosts(ctx context.Context, userID int) ([]m
 
 	var followerPosts []model.Post
 	for _, f := range followers {
-		if posts, err := s.postRepo.GetPostsByUserID(ctx, f.FollowingID); err == nil {
+		if posts, err := s.postRepo.GetPostsByUserId(ctx, f.FollowingID); err == nil {
 			followerPosts = append(followerPosts, posts...)
 		}
 	}
@@ -333,6 +335,58 @@ func (s *PostServiceImpl) UnlikePost(ctx context.Context, postID, userID int) er
 			if err := s.userRepo.DecrementSocialPoint(txCtx, post.UserID); err != nil {
 				return err
 			}
+		}
+
+		return nil
+	})
+}
+
+func (s *PostServiceImpl) SavePost(ctx context.Context, postID, userID int) error {
+	_, err := s.postRepo.GetPostDetailByID(ctx, postID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("post not found")
+		}
+		return err
+	}
+
+	isSaved, err := s.postRepo.HasUserSavedPost(ctx, postID, userID)
+	if err != nil {
+		return err
+	}
+	if isSaved {
+		return nil
+	}
+
+	return s.database.Transaction(ctx, func(txCtx context.Context) error {
+		if err := s.postRepo.CreatePostSave(txCtx, &model.PostSave{PostID: postID, UserID: userID}); err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
+func (s *PostServiceImpl) UnsavePost(ctx context.Context, postID, userID int) error {
+	_, err := s.postRepo.GetPostDetailByID(ctx, postID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("post not found")
+		}
+		return err
+	}
+
+	isSaved, err := s.postRepo.HasUserSavedPost(ctx, postID, userID)
+	if err != nil {
+		return err
+	}
+	if !isSaved {
+		return nil
+	}
+
+	return s.database.Transaction(ctx, func(txCtx context.Context) error {
+		if err := s.postRepo.DeletePostSave(txCtx, postID, userID); err != nil {
+			return err
 		}
 
 		return nil

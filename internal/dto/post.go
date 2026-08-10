@@ -30,6 +30,14 @@ type UnlikePostRequest struct {
 	UserID int `json:"user_id"`
 }
 
+type SavePostRequest struct {
+	UserID int `json:"user_id"`
+}
+
+type UnsavePostRequest struct {
+	UserID int `json:"user_id"`
+}
+
 type PostUserSummary struct {
 	Username       string `json:"Username"`
 	ProfilePicture string `json:"ProfilePicture"`

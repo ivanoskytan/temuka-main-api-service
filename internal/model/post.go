@@ -23,7 +23,9 @@ type Post struct {
 	Image         string         `gorm:"column:image"`
 	Comments      []Comment      `gorm:"foreignKey:PostID"`
 	Notifications []Notification `gorm:"foreignKey:PostID"`
-	Likes         []*User        `gorm:"many2many:post_likes;"`
+
+	Likes []*User `gorm:"many2many:post_likes;"`
+	Saves []*User `gorm:"many2many:post_saves;"`
 
 	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"`
 	UpdatedAt time.Time `gorm:"column:updated_at;autoCreateTime;autoUpdateTime"`

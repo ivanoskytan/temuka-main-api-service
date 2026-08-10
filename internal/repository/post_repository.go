@@ -12,15 +12,19 @@ import (
 type PostRepository interface {
 	CreatePost(ctx context.Context, post *model.Post) error
 	GetPostDetailByID(ctx context.Context, id int) (*model.Post, error)
-	GetPostsByUserID(ctx context.Context, userId int) ([]model.Post, error)
+	GetPostsByUserId(ctx context.Context, userId int) ([]model.Post, error)
 	UpdatePost(ctx context.Context, id int, post *model.Post) error
 	DeletePost(ctx context.Context, id int) error
 	HasUserLikedPost(ctx context.Context, postId, userId int) (bool, error)
-	GetLikedPostIDsForUser(ctx context.Context, userId int, postIds []int) (map[int]bool, error)
+	GetLikedPostIdsForUser(ctx context.Context, userId int, postIds []int) (map[int]bool, error)
 	CreatePostLike(ctx context.Context, postLike *model.PostLike) error
 	DeletePostLike(ctx context.Context, userId, postId int) error
 	IncrementPostLikeCount(ctx context.Context, postId int) error
 	DecrementPostLikeCount(ctx context.Context, postId int) error
+	CreatePostSave(ctx context.Context, postSave *model.PostSave) error
+	DeletePostSave(ctx context.Context, postId, userId int) error
+	HasUserSavedPost(ctx context.Context, postId, userId int) (bool, error)
+	GetSavedpostIdsForUser(ctx context.Context, userId int, postIds []int) (map[int]bool, error)
 }
 
 type PostRepositoryImpl struct {
@@ -70,7 +74,7 @@ func (r *PostRepositoryImpl) UpdatePost(ctx context.Context, id int, post *model
 	return nil
 }
 
-func (r *PostRepositoryImpl) GetPostsByUserID(ctx context.Context, userId int) ([]model.Post, error) {
+func (r *PostRepositoryImpl) GetPostsByUserId(ctx context.Context, userId int) ([]model.Post, error) {
 	var posts []model.Post
 
 	q := r.db.DB.WithContext(ctx).Where("user_id = ?", userId)
@@ -92,7 +96,7 @@ func (r *PostRepositoryImpl) HasUserLikedPost(ctx context.Context, postId, userI
 	return count > 0, err
 }
 
-func (r *PostRepositoryImpl) GetLikedPostIDsForUser(ctx context.Context, userId int, postIds []int) (map[int]bool, error) {
+func (r *PostRepositoryImpl) GetLikedPostIdsForUser(ctx context.Context, userId int, postIds []int) (map[int]bool, error) {
 	if len(postIds) == 0 {
 		return map[int]bool{}, nil
 	}
@@ -137,4 +141,47 @@ func (r *PostRepositoryImpl) DecrementPostLikeCount(ctx context.Context, postId 
 		Model(&model.Post{}).
 		Where("id = ?", postId).
 		UpdateColumn("like_count", gorm.Expr("GREATEST(0, like_count - 1)")).Error
+}
+
+func (r *PostRepositoryImpl) CreatePostSave(ctx context.Context, postSave *model.PostSave) error {
+	return r.db.DB.WithContext(ctx).Create(postSave).Error
+}
+
+func (r *PostRepositoryImpl) DeletePostSave(ctx context.Context, postId, userId int) error {
+	return r.db.DB.WithContext(ctx).
+		Where("post_id = ? AND user_id = ?", postId, userId).
+		Delete(&model.PostSave{}).Error
+}
+
+func (r *PostRepositoryImpl) HasUserSavedPost(ctx context.Context, postId, userId int) (bool, error) {
+	var count int64
+	err := r.db.DB.WithContext(ctx).
+		Model(&model.PostSave{}).
+		Where("post_id = ? AND user_id = ?", postId, userId).
+		Count(&count).Error
+
+	return count > 0, err
+}
+
+func (r *PostRepositoryImpl) GetSavedpostIdsForUser(ctx context.Context, userId int, postIds []int) (map[int]bool, error) {
+	if len(postIds) == 0 {
+		return map[int]bool{}, nil
+	}
+
+	var savedIDs []int
+	err := r.db.DB.WithContext(ctx).
+		Model(&model.PostSave{}).
+		Where("user_id = ? AND post_id IN ?", userId, postIds).
+		Pluck("post_id", &savedIDs).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	savedMap := make(map[int]bool, len(savedIDs))
+	for _, id := range savedIDs {
+		savedMap[id] = true
+	}
+
+	return savedMap, nil
 }
