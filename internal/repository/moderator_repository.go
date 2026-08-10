@@ -34,7 +34,9 @@ func (r *ModeratorRepositoryImpl) CreateModerator(ctx context.Context, moderator
 func (r *ModeratorRepositoryImpl) GetModeratorsByCommunityID(ctx context.Context, communityId int) ([]model.Moderator, error) {
 	var moderators []model.Moderator
 
-	if err := r.db.DB.WithContext(ctx).Where(&moderators, "community_id = ?", communityId).Error; err != nil {
+	if err := r.db.DB.WithContext(ctx).
+		Preload("CommunityMember.User").
+		Where(&moderators, "community_id = ?", communityId).Error; err != nil {
 		return nil, fmt.Errorf("failed to get moderators: %w", err)
 	}
 

@@ -192,7 +192,6 @@ func (r *CommunityRepositoryImpl) GetCommunityDetailBySlug(ctx context.Context, 
 	var community model.Community
 	err := r.db.DB.WithContext(ctx).
 		Preload("CommunityRules").
-		Preload("Moderators").
 		Where("slug = ?", slug).
 		First(&community).Error
 	if err != nil {

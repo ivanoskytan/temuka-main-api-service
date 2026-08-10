@@ -11,6 +11,7 @@ import (
 )
 
 type ModeratorService interface {
+	GetModeratorsByCommunityID(ctx context.Context, communityID int) (*dto.ModeratorListResponse, error)
 	SendModeratorRequest(ctx context.Context, data dto.SendModeratorRequest) error
 	RemoveModerator(ctx context.Context, moderatorID int) error
 }
@@ -25,6 +26,27 @@ func NewModeratorService(moderatorRepo repository.ModeratorRepository, notificat
 		ModeratorRepository:    moderatorRepo,
 		NotificationRepository: notificationRepo,
 	}
+}
+
+func (s *ModeratorServiceImpl) GetModeratorsByCommunityID(ctx context.Context, communityID int) (*dto.ModeratorListResponse, error) {
+	moderators, err := s.ModeratorRepository.GetModeratorsByCommunityID(ctx, communityID)
+	moderatorList := make([]dto.ModeratorDetail, 0)
+
+	if err != nil {
+		for _, m := range moderators {
+			moderatorList = append(moderatorList, dto.ModeratorDetail{
+				ID:             m.ID,
+				UserID:         m.CommunityMember.UserID,
+				Username:       m.CommunityMember.User.Username,
+				ProfilePicture: m.CommunityMember.User.ProfilePicture,
+				SocialPoint:    m.CommunityMember.User.SocialPoint,
+				CreatedAt:      m.CreatedAt,
+			})
+		}
+	}
+	return &dto.ModeratorListResponse{
+		ModeratorList: moderatorList,
+	}, nil
 }
 
 func (s *ModeratorServiceImpl) SendModeratorRequest(ctx context.Context, data dto.SendModeratorRequest) error {

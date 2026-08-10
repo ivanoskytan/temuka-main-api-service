@@ -11,6 +11,7 @@ import (
 )
 
 type ModeratorHandler interface {
+	GetModeratorsByCommunityID(w http.ResponseWriter, r *http.Request)
 	SendModeratorRequest(w http.ResponseWriter, r *http.Request)
 	RemoveModerator(w http.ResponseWriter, r *http.Request)
 }
@@ -23,6 +24,28 @@ func NewModeratorHandler(moderatorService service.ModeratorService) ModeratorHan
 	return &ModeratorHandlerImpl{
 		ModeratorService: moderatorService,
 	}
+}
+
+func (h *ModeratorHandlerImpl) GetModeratorsByCommunityID(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	communityIDStr := vars["community_id"]
+
+	communityID, err := strconv.Atoi(communityIDStr)
+	if err != nil {
+		rest.WriteResponse(w, http.StatusBadRequest, map[string]string{"error": "Invalid community ID"})
+		return
+	}
+
+	moderators, err := h.ModeratorService.GetModeratorsByCommunityID(r.Context(), communityID)
+	if err != nil {
+		rest.WriteResponse(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	rest.WriteResponse(w, http.StatusOK, map[string]interface{}{
+		"message": "Moderators have been retrieved",
+		"data":    moderators,
+	})
 }
 
 func (h *ModeratorHandlerImpl) SendModeratorRequest(w http.ResponseWriter, r *http.Request) {

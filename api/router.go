@@ -117,6 +117,7 @@ func Routes(db database.PostgresWrapper, redis keyValueStore.RedisWrapper, stora
 
 	moderatorRouter := router.PathPrefix("/api/moderator").Subrouter()
 	moderatorRouter.Use(middleware.CheckAuth)
+	moderatorRouter.HandleFunc("/list/{community_id}", moderatorHandler.GetModeratorsByCommunityID).Methods("GET")
 	moderatorRouter.HandleFunc("/send", moderatorHandler.SendModeratorRequest).Methods("POST")
 	moderatorRouter.HandleFunc("/{id}", moderatorHandler.RemoveModerator).Methods("DELETE")
 

@@ -15,6 +15,8 @@ type CommunityMember struct {
 	Banned          bool       `gorm:"column:banned;default:false"`
 	BannedExpiredAt *time.Time `gorm:"column:banned_expired_at"`
 
+	User User `gorm:"foreignKey:UserID"`
+
 	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"`
 	UpdatedAt time.Time `gorm:"column:updated_at;autoCreateTime;autoUpdateTime"`
 }
