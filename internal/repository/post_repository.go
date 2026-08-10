@@ -6,6 +6,7 @@ import (
 
 	"github.com/temuka-api-service/internal/model"
 	database "github.com/temuka-api-service/util/database"
+	"gorm.io/gorm"
 )
 
 type PostRepository interface {
@@ -14,6 +15,12 @@ type PostRepository interface {
 	GetPostsByUserID(ctx context.Context, userId int) ([]model.Post, error)
 	UpdatePost(ctx context.Context, id int, post *model.Post) error
 	DeletePost(ctx context.Context, id int) error
+	HasUserLikedPost(ctx context.Context, postId, userId int) (bool, error)
+	GetLikedPostIDsForUser(ctx context.Context, userId int, postIds []int) (map[int]bool, error)
+	CreatePostLike(ctx context.Context, postLike *model.PostLike) error
+	DeletePostLike(ctx context.Context, userId, postId int) error
+	IncrementPostLikeCount(ctx context.Context, postId int) error
+	DecrementPostLikeCount(ctx context.Context, postId int) error
 }
 
 type PostRepositoryImpl struct {
@@ -73,4 +80,61 @@ func (r *PostRepositoryImpl) GetPostsByUserID(ctx context.Context, userId int) (
 	}
 
 	return posts, nil
+}
+
+func (r *PostRepositoryImpl) HasUserLikedPost(ctx context.Context, postId, userId int) (bool, error) {
+	var count int64
+	err := r.db.DB.WithContext(ctx).
+		Model(&model.PostLike{}).
+		Where("post_id = ? AND user_id = ?", postId, userId).
+		Count(&count).Error
+
+	return count > 0, err
+}
+
+func (r *PostRepositoryImpl) GetLikedPostIDsForUser(ctx context.Context, userId int, postIds []int) (map[int]bool, error) {
+	if len(postIds) == 0 {
+		return map[int]bool{}, nil
+	}
+
+	var likedIDs []int
+	err := r.db.DB.WithContext(ctx).
+		Model(&model.PostLike{}).
+		Where("user_id = ? AND post_id IN ?", userId, postIds).
+		Pluck("post_id", &likedIDs).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	likedMap := make(map[int]bool, len(likedIDs))
+	for _, id := range likedIDs {
+		likedMap[id] = true
+	}
+
+	return likedMap, nil
+}
+
+func (r *PostRepositoryImpl) CreatePostLike(ctx context.Context, postLike *model.PostLike) error {
+	return r.db.DB.WithContext(ctx).Create(postLike).Error
+}
+
+func (r *PostRepositoryImpl) DeletePostLike(ctx context.Context, postId, userId int) error {
+	return r.db.DB.WithContext(ctx).
+		Where("post_id = ? AND user_id = ?", postId, userId).
+		Delete(&model.PostLike{}).Error
+}
+
+func (r *PostRepositoryImpl) IncrementPostLikeCount(ctx context.Context, postId int) error {
+	return r.db.DB.WithContext(ctx).
+		Model(&model.Post{}).
+		Where("id = ?", postId).
+		UpdateColumn("like_count", gorm.Expr("like_count + 1")).Error
+}
+
+func (r *PostRepositoryImpl) DecrementPostLikeCount(ctx context.Context, postId int) error {
+	return r.db.DB.WithContext(ctx).
+		Model(&model.Post{}).
+		Where("id = ?", postId).
+		UpdateColumn("like_count", gorm.Expr("GREATEST(0, like_count - 1)")).Error
 }

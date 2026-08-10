@@ -11,6 +11,7 @@ import (
 	"github.com/temuka-api-service/internal/model"
 	"github.com/temuka-api-service/internal/publisher"
 	"github.com/temuka-api-service/internal/repository"
+	"github.com/temuka-api-service/util/database"
 	"github.com/temuka-api-service/util/key_value_store"
 	"gorm.io/gorm"
 )
@@ -23,9 +24,11 @@ type PostService interface {
 	DeletePost(ctx context.Context, postID int) error
 	GetTimelinePosts(ctx context.Context, userID int) ([]model.Post, error)
 	LikePost(ctx context.Context, postID, userID int) error
+	UnlikePost(ctx context.Context, postID, userID int) error
 }
 
 type PostServiceImpl struct {
+	database            database.PostgresWrapper
 	postRepo            repository.PostRepository
 	userRepo            repository.UserRepository
 	commentRepo         repository.CommentRepository
@@ -36,6 +39,7 @@ type PostServiceImpl struct {
 }
 
 func NewPostService(
+	database database.PostgresWrapper,
 	postRepo repository.PostRepository,
 	userRepo repository.UserRepository,
 	commentRepo repository.CommentRepository,
@@ -45,6 +49,7 @@ func NewPostService(
 	suggestionPublisher publisher.SuggestionPublisher,
 ) PostService {
 	return &PostServiceImpl{
+		database:            database,
 		postRepo:            postRepo,
 		userRepo:            userRepo,
 		commentRepo:         commentRepo,
@@ -231,10 +236,12 @@ func (s *PostServiceImpl) LikePost(ctx context.Context, postID, userID int) erro
 		return err
 	}
 
-	for _, u := range post.Likes {
-		if u.ID == userID {
-			return nil
-		}
+	isLiked, err := s.postRepo.HasUserLikedPost(ctx, postID, userID)
+	if err != nil {
+		return err
+	}
+	if isLiked {
+		return nil
 	}
 
 	liker, err := s.userRepo.GetUserByID(ctx, userID)
@@ -242,8 +249,24 @@ func (s *PostServiceImpl) LikePost(ctx context.Context, postID, userID int) erro
 		return errors.New("user not found")
 	}
 
-	post.Likes = append(post.Likes, &model.User{ID: userID})
-	if err := s.postRepo.UpdatePost(ctx, postID, post); err != nil {
+	err = s.database.Transaction(ctx, func(txCtx context.Context) error {
+		if err := s.postRepo.CreatePostLike(txCtx, &model.PostLike{PostID: postID, UserID: userID}); err != nil {
+			return err
+		}
+
+		if err := s.postRepo.IncrementPostLikeCount(txCtx, postID); err != nil {
+			return err
+		}
+
+		if post.UserID != userID {
+			if err := s.userRepo.IncrementSocialPoint(txCtx, post.UserID); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
 		return err
 	}
 
@@ -278,4 +301,40 @@ func (s *PostServiceImpl) LikePost(ctx context.Context, postID, userID int) erro
 		},
 	)
 	return s.notificationRepo.CreateNotification(ctx, &notification)
+}
+
+func (s *PostServiceImpl) UnlikePost(ctx context.Context, postID, userID int) error {
+	post, err := s.postRepo.GetPostDetailByID(ctx, postID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("post not found")
+		}
+		return err
+	}
+
+	isLiked, err := s.postRepo.HasUserLikedPost(ctx, postID, userID)
+	if err != nil {
+		return err
+	}
+	if !isLiked {
+		return nil
+	}
+
+	return s.database.Transaction(ctx, func(txCtx context.Context) error {
+		if err := s.postRepo.DeletePostLike(txCtx, postID, userID); err != nil {
+			return err
+		}
+
+		if err := s.postRepo.DecrementPostLikeCount(txCtx, postID); err != nil {
+			return err
+		}
+
+		if post.UserID != userID {
+			if err := s.userRepo.DecrementSocialPoint(txCtx, post.UserID); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 }

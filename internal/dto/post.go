@@ -26,6 +26,10 @@ type LikePostRequest struct {
 	UserID int `json:"user_id"`
 }
 
+type UnlikePostRequest struct {
+	UserID int `json:"user_id"`
+}
+
 type PostUserSummary struct {
 	Username       string `json:"Username"`
 	ProfilePicture string `json:"ProfilePicture"`

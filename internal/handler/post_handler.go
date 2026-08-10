@@ -18,6 +18,7 @@ type PostHandler interface {
 	DeletePost(w http.ResponseWriter, r *http.Request)
 	GetTimelinePosts(w http.ResponseWriter, r *http.Request)
 	LikePost(w http.ResponseWriter, r *http.Request)
+	UnlikePost(w http.ResponseWriter, r *http.Request)
 }
 
 type PostHandlerImpl struct {
@@ -118,5 +119,20 @@ func (h *PostHandlerImpl) LikePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	resp := dto.MessageResponse{Message: "You have liked this post"}
+	rest.WriteResponse(w, http.StatusOK, resp)
+}
+
+func (h *PostHandlerImpl) UnlikePost(w http.ResponseWriter, r *http.Request) {
+	postID, _ := strconv.Atoi(mux.Vars(r)["id"])
+	var req dto.UnlikePostRequest
+	if err := rest.ReadRequest(r, &req); err != nil {
+		rest.WriteResponse(w, http.StatusBadRequest, map[string]string{"error": "Invalid request"})
+		return
+	}
+	if err := h.postService.UnlikePost(r.Context(), postID, req.UserID); err != nil {
+		rest.WriteResponse(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+	resp := dto.MessageResponse{Message: "You have unliked this post"}
 	rest.WriteResponse(w, http.StatusOK, resp)
 }

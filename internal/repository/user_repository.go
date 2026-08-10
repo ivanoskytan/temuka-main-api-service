@@ -6,6 +6,7 @@ import (
 
 	"github.com/temuka-api-service/internal/model"
 	database "github.com/temuka-api-service/util/database"
+	"gorm.io/gorm"
 )
 
 type UserRepository interface {
@@ -17,6 +18,8 @@ type UserRepository interface {
 	UpdateUser(ctx context.Context, userId int, user *model.User) error
 	DeleteUser(ctx context.Context, id int) error
 	CreateUserFollow(ctx context.Context, userFollow *model.UserFollow) error
+	IncrementSocialPoint(ctx context.Context, userId int) error
+	DecrementSocialPoint(ctx context.Context, userId int) error
 }
 
 type UserRepositoryImpl struct {
@@ -98,4 +101,18 @@ func (r *UserRepositoryImpl) GetFollowers(ctx context.Context, userId int) ([]mo
 	}
 
 	return followers, nil
+}
+
+func (r *UserRepositoryImpl) IncrementSocialPoint(ctx context.Context, userId int) error {
+	return r.db.DB.WithContext(ctx).
+		Model(&model.User{}).
+		Where("id = ?", userId).
+		UpdateColumn("social_point", gorm.Expr("social_point + 1")).Error
+}
+
+func (r *UserRepositoryImpl) DecrementSocialPoint(ctx context.Context, userId int) error {
+	return r.db.DB.WithContext(ctx).
+		Model(&model.User{}).
+		Where("id = ?", userId).
+		UpdateColumn("social_point", gorm.Expr("GREATEST(0, social_point - 1)")).Error
 }

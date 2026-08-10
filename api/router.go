@@ -38,7 +38,7 @@ func Routes(db database.PostgresWrapper, redis keyValueStore.RedisWrapper, stora
 	// Init services
 	userService := service.NewUserService(userRepo, searchIndexPublisher)
 	authService := service.NewAuthService(userRepo, searchIndexPublisher)
-	postService := service.NewPostService(postRepo, userRepo, commentRepo, notificationRepo, communityRepo, redis, searchIndexPublisher)
+	postService := service.NewPostService(db, postRepo, userRepo, commentRepo, notificationRepo, communityRepo, redis, searchIndexPublisher)
 	notificationService := service.NewNotificationService(notificationRepo)
 	commentService := service.NewCommentService(commentRepo, postRepo, notificationRepo, reportRepo)
 	communityService := service.NewCommunityService(db, communityRepo, communityRuleRepo, moderatorRepo, searchIndexPublisher)
@@ -87,6 +87,7 @@ func Routes(db database.PostgresWrapper, redis keyValueStore.RedisWrapper, stora
 	postRouter.HandleFunc("/timeline/{user_id}", postHandler.GetTimelinePosts).Methods("GET")
 	postRouter.HandleFunc("/user/{user_id}", postHandler.GetUserPosts).Methods("GET")
 	postRouter.HandleFunc("/like/{id}", postHandler.LikePost).Methods("PUT")
+	postRouter.HandleFunc("/unlike/{id}", postHandler.UnlikePost).Methods("PUT")
 	postRouter.HandleFunc("/{id}", postHandler.DeletePost).Methods("DELETE")
 	postRouter.HandleFunc("/{id}", postHandler.UpdatePost).Methods("PUT")
 
