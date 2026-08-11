@@ -88,6 +88,16 @@ func (s *UserServiceImpl) UpdateUser(ctx context.Context, data dto.UpdateUserDTO
 		return errors.New("error updating user")
 	}
 
+	go s.SuggestionPublisher.PublishSuggestionEvent(
+		constant.EventOperationCreate,
+		constant.EventEntityTypeUser,
+		fmt.Sprintf("%d", data.UserID),
+		map[string]interface{}{
+			"title": data.Username,
+			"icon":  data.ProfilePicture,
+		},
+	)
+
 	return nil
 }
 

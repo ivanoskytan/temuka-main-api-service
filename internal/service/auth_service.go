@@ -3,10 +3,12 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"strconv"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/temuka-api-service/internal/constant"
 	"github.com/temuka-api-service/internal/dto"
 	"github.com/temuka-api-service/internal/model"
 	"github.com/temuka-api-service/internal/publisher"
@@ -49,6 +51,15 @@ func (c *AuthServiceImpl) Register(ctx context.Context, data dto.RegisterRequest
 	if err := c.UserRepository.CreateUser(ctx, &newUser); err != nil {
 		return nil, errors.New("error creating user")
 	}
+
+	go c.SuggestionPublisher.PublishSuggestionEvent(
+		constant.EventOperationCreate,
+		constant.EventEntityTypeUser,
+		fmt.Sprintf("%d", newUser.ID),
+		map[string]interface{}{
+			"title": newUser.Username,
+		},
+	)
 
 	return &newUser, nil
 }

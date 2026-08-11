@@ -70,12 +70,13 @@ func (s *PostServiceImpl) CreatePost(ctx context.Context, req *dto.CreatePostReq
 		IsAnonymous: req.IsAnonymous,
 	}
 
-	if req.IsAnonymous {
-		user, err := s.userRepo.GetUserByID(ctx, req.UserID)
-		if err != nil {
-			return nil, errors.New("error fetching user for anonymous post")
-		}
+	var user *model.User
+	user, err := s.userRepo.GetUserByID(ctx, req.UserID)
+	if err != nil {
+		return nil, errors.New("error fetching user for anonymous post")
+	}
 
+	if req.IsAnonymous {
 		if user.UniversityID == nil || user.University == nil {
 			return nil, errors.New("user must belong to a university to post anonymously")
 		}
@@ -110,6 +111,18 @@ func (s *PostServiceImpl) CreatePost(ctx context.Context, req *dto.CreatePostReq
 			return nil, errors.New("error updating community posts count")
 		}
 	}
+
+	go s.suggestionPublisher.PublishSuggestionEvent(
+		constant.EventOperationCreate,
+		constant.EventEntityTypePost,
+		fmt.Sprintf("%d", newPost.ID),
+		map[string]interface{}{
+			"title":   newPost.Title,
+			"content": newPost.Description,
+			"user_id": newPost.UserID,
+			"icon":    user.ProfilePicture,
+		},
+	)
 
 	return &newPost, nil
 }
@@ -184,7 +197,7 @@ func (s *PostServiceImpl) UpdatePost(ctx context.Context, postID int, req *dto.U
 
 func (s *PostServiceImpl) DeletePost(ctx context.Context, postID int) error {
 	go s.suggestionPublisher.PublishSuggestionEvent(
-		constant.EventOperationUpdate,
+		constant.EventOperationDelete,
 		constant.EventEntityTypePost,
 		fmt.Sprintf("%d", postID),
 		nil,
