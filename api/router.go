@@ -86,6 +86,7 @@ func Routes(db database.PostgresWrapper, redis keyValueStore.RedisWrapper, stora
 	postRouter.HandleFunc("/{id}", postHandler.GetPostDetail).Methods("GET")
 	postRouter.HandleFunc("/timeline/{user_id}", postHandler.GetTimelinePosts).Methods("GET")
 	postRouter.HandleFunc("/user/{user_id}", postHandler.GetUserPosts).Methods("GET")
+	postRouter.HandleFunc("/saved/{user_id}", postHandler.GetSavedPostsByUser).Methods("GET")
 	postRouter.HandleFunc("/like/{id}", postHandler.LikePost).Methods("PUT")
 	postRouter.HandleFunc("/unlike/{id}", postHandler.UnlikePost).Methods("PUT")
 	postRouter.HandleFunc("/save/{id}", postHandler.SavePost).Methods("PUT")

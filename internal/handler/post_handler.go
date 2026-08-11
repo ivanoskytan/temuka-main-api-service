@@ -21,6 +21,7 @@ type PostHandler interface {
 	UnlikePost(w http.ResponseWriter, r *http.Request)
 	SavePost(w http.ResponseWriter, r *http.Request)
 	UnsavePost(w http.ResponseWriter, r *http.Request)
+	GetSavedPostsByUser(w http.ResponseWriter, r *http.Request)
 }
 
 type PostHandlerImpl struct {
@@ -166,5 +167,16 @@ func (h *PostHandlerImpl) UnsavePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	resp := dto.MessageResponse{Message: "You have unsaved this post"}
+	rest.WriteResponse(w, http.StatusOK, resp)
+}
+
+func (h *PostHandlerImpl) GetSavedPostsByUser(w http.ResponseWriter, r *http.Request) {
+	userID, _ := strconv.Atoi(mux.Vars(r)["user_id"])
+	posts, err := h.postService.GetSavedPostsByUser(r.Context(), userID)
+	if err != nil {
+		rest.WriteResponse(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+	resp := dto.MessageResponse{Message: "Saved posts retrieved", Data: posts}
 	rest.WriteResponse(w, http.StatusOK, resp)
 }

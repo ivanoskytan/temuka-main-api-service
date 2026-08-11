@@ -23,6 +23,7 @@ type PostService interface {
 	UpdatePost(ctx context.Context, postID int, req *dto.UpdatePostRequest) (*model.Post, error)
 	DeletePost(ctx context.Context, postID int) error
 	GetTimelinePosts(ctx context.Context, userID int) ([]model.Post, error)
+	GetSavedPostsByUser(ctx context.Context, userID int) ([]model.Post, error)
 	LikePost(ctx context.Context, postID, userID int) error
 	UnlikePost(ctx context.Context, postID, userID int) error
 	SavePost(ctx context.Context, postID, userID int) error
@@ -168,6 +169,10 @@ func (s *PostServiceImpl) GetPostDetail(ctx context.Context, postID int) (*dto.P
 
 func (s *PostServiceImpl) GetUserPosts(ctx context.Context, userID int) ([]model.Post, error) {
 	return s.postRepo.GetPostsByUserId(ctx, userID)
+}
+
+func (s *PostServiceImpl) GetSavedPostsByUser(ctx context.Context, userID int) ([]model.Post, error) {
+	return s.postRepo.GetSavedPostsByUser(ctx, userID)
 }
 
 func (s *PostServiceImpl) UpdatePost(ctx context.Context, postID int, req *dto.UpdatePostRequest) (*model.Post, error) {

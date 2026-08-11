@@ -24,7 +24,8 @@ type PostRepository interface {
 	CreatePostSave(ctx context.Context, postSave *model.PostSave) error
 	DeletePostSave(ctx context.Context, postId, userId int) error
 	HasUserSavedPost(ctx context.Context, postId, userId int) (bool, error)
-	GetSavedpostIdsForUser(ctx context.Context, userId int, postIds []int) (map[int]bool, error)
+	GetSavedPostIdsForUser(ctx context.Context, userId int, postIds []int) (map[int]bool, error)
+	GetSavedPostsByUser(ctx context.Context, userId int) ([]model.Post, error)
 }
 
 type PostRepositoryImpl struct {
@@ -163,7 +164,22 @@ func (r *PostRepositoryImpl) HasUserSavedPost(ctx context.Context, postId, userI
 	return count > 0, err
 }
 
-func (r *PostRepositoryImpl) GetSavedpostIdsForUser(ctx context.Context, userId int, postIds []int) (map[int]bool, error) {
+func (r *PostRepositoryImpl) GetSavedPostsByUser(ctx context.Context, userId int) ([]model.Post, error) {
+	var posts []model.Post
+
+	err := r.db.DB.WithContext(ctx).
+		Joins("JOIN post_saves ON post_saves.post_id = posts.id").
+		Where("post_saves.user_id = ?", userId).
+		Find(&posts).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get saved posts by user id: %w", err)
+	}
+
+	return posts, nil
+}
+
+func (r *PostRepositoryImpl) GetSavedPostIdsForUser(ctx context.Context, userId int, postIds []int) (map[int]bool, error) {
 	if len(postIds) == 0 {
 		return map[int]bool{}, nil
 	}
