@@ -18,11 +18,11 @@ import (
 
 type PostService interface {
 	CreatePost(ctx context.Context, req *dto.CreatePostRequest) (*model.Post, error)
-	GetPostDetail(ctx context.Context, postID int) (*dto.PostDetailResponse, error)
+	GetPostDetail(ctx context.Context, postID, currentUserID int) (*dto.PostDetailResponse, error)
 	GetUserPosts(ctx context.Context, userID int) ([]model.Post, error)
 	UpdatePost(ctx context.Context, postID int, req *dto.UpdatePostRequest) (*model.Post, error)
 	DeletePost(ctx context.Context, postID int) error
-	GetTimelinePosts(ctx context.Context, userID int) ([]model.Post, error)
+	GetTimelinePosts(ctx context.Context, userID int) ([]dto.PostDataResponse, error)
 	GetSavedPostsByUser(ctx context.Context, userID int) ([]model.Post, error)
 	LikePost(ctx context.Context, postID, userID int) error
 	UnlikePost(ctx context.Context, postID, userID int) error
@@ -128,7 +128,7 @@ func (s *PostServiceImpl) CreatePost(ctx context.Context, req *dto.CreatePostReq
 	return &newPost, nil
 }
 
-func (s *PostServiceImpl) GetPostDetail(ctx context.Context, postID int) (*dto.PostDetailResponse, error) {
+func (s *PostServiceImpl) GetPostDetail(ctx context.Context, postID, currentUserID int) (*dto.PostDetailResponse, error) {
 	post, err := s.postRepo.GetPostDetailByID(ctx, postID)
 	if err != nil {
 		return nil, err
@@ -160,11 +160,27 @@ func (s *PostServiceImpl) GetPostDetail(ctx context.Context, postID int) (*dto.P
 		}
 	}
 
-	return &dto.PostDetailResponse{
-		Post:     post,
+	isLiked, err := s.postRepo.HasUserLikedPost(ctx, postID, currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	isSaved, err := s.postRepo.HasUserSavedPost(ctx, postID, currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	data := dto.PostDetailResponse{
+		PostData: dto.PostDataResponse{
+			Post:    post,
+			IsLiked: isLiked,
+			IsSaved: isSaved,
+		},
 		User:     userSummary,
 		Comments: postComments,
-	}, nil
+	}
+
+	return &data, nil
 }
 
 func (s *PostServiceImpl) GetUserPosts(ctx context.Context, userID int) ([]model.Post, error) {
@@ -211,11 +227,11 @@ func (s *PostServiceImpl) DeletePost(ctx context.Context, postID int) error {
 	return s.postRepo.DeletePost(ctx, postID)
 }
 
-func (s *PostServiceImpl) GetTimelinePosts(ctx context.Context, userID int) ([]model.Post, error) {
+func (s *PostServiceImpl) GetTimelinePosts(ctx context.Context, userID int) ([]dto.PostDataResponse, error) {
 	cacheKey := fmt.Sprintf("timeline_posts_user_%d", userID)
 
 	var cached struct {
-		Data []model.Post `json:"data"`
+		Data []dto.PostDataResponse `json:"data"`
 	}
 
 	if err := s.redis.Get(cacheKey, cached); err == nil {
@@ -240,11 +256,36 @@ func (s *PostServiceImpl) GetTimelinePosts(ctx context.Context, userID int) ([]m
 	}
 
 	allPosts := append(userPosts, followerPosts...)
-	_ = s.redis.Set(cacheKey, struct {
-		Data []model.Post `json:"data"`
-	}{Data: allPosts}, 10*time.Minute)
 
-	return allPosts, nil
+	postIDs := make([]int, len(allPosts))
+	for _, p := range allPosts {
+		postIDs = append(postIDs, p.ID)
+	}
+
+	likedMap, err := s.postRepo.GetLikedPostIdsForUser(ctx, userID, postIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	savedMap, err := s.postRepo.GetSavedPostIdsForUser(ctx, userID, postIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	data := make([]dto.PostDataResponse, len(allPosts))
+	for i, p := range allPosts {
+		data[i] = dto.PostDataResponse{
+			Post:    &p,
+			IsLiked: likedMap[p.ID],
+			IsSaved: savedMap[p.ID],
+		}
+	}
+
+	_ = s.redis.Set(cacheKey, struct {
+		Data []dto.PostDataResponse `json:"data"`
+	}{Data: data}, 10*time.Minute)
+
+	return data, nil
 }
 
 func (s *PostServiceImpl) LikePost(ctx context.Context, postID, userID int) error {
@@ -261,7 +302,7 @@ func (s *PostServiceImpl) LikePost(ctx context.Context, postID, userID int) erro
 		return err
 	}
 	if isLiked {
-		return nil
+		return errors.New("post already liked by the user")
 	}
 
 	liker, err := s.userRepo.GetUserByID(ctx, userID)
@@ -293,7 +334,7 @@ func (s *PostServiceImpl) LikePost(ctx context.Context, postID, userID int) erro
 	notification := model.Notification{
 		UserID:  post.UserID,
 		ActorID: userID,
-		PostID:  post.ID,
+		PostID:  &post.ID,
 		Type:    "like",
 		Message: liker.Username + " liked your post: " + post.Title,
 		Read:    false,

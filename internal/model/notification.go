@@ -11,8 +11,8 @@ type Notification struct {
 	ID        int        `gorm:"primary_key;column:id"`
 	UserID    int        `gorm:"column:user_id"`
 	ActorID   int        `gorm:"column:actor_id"`
-	PostID    int        `gorm:"column:post_id"`
-	CommentID int        `gorm:"column:comment_id"`
+	PostID    *int       `gorm:"column:post_id;default:null"`
+	CommentID *int       `gorm:"column:comment_id;default:null"`
 	Type      string     `gorm:"column:type"`
 	Read      bool       `gorm:"column:read;default:false"`
 	Message   string     `gorm:"column:message"`

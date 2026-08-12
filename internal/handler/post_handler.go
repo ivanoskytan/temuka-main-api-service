@@ -51,7 +51,12 @@ func (h *PostHandlerImpl) CreatePost(w http.ResponseWriter, r *http.Request) {
 
 func (h *PostHandlerImpl) GetPostDetail(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(mux.Vars(r)["id"])
-	post, err := h.postService.GetPostDetail(r.Context(), id)
+
+	var currentUserID int
+	if userID, ok := r.Context().Value("user_id").(int); ok {
+		currentUserID = userID
+	}
+	post, err := h.postService.GetPostDetail(r.Context(), id, currentUserID)
 	if err != nil {
 		rest.WriteResponse(w, http.StatusNotFound, map[string]string{"error": "Post not found"})
 		return

@@ -7,6 +7,7 @@ import (
 	"github.com/temuka-api-service/internal/model"
 	database "github.com/temuka-api-service/util/database"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type PostRepository interface {
@@ -48,7 +49,6 @@ func (r *PostRepositoryImpl) GetPostDetailByID(ctx context.Context, id int) (*mo
 
 	if err := r.db.DB.WithContext(ctx).
 		Preload("User").
-		Preload("Likes").
 		Preload("CommunityPost").
 		Preload("CommunityPost.Community").
 		First(&post, id).Error; err != nil {
@@ -121,7 +121,12 @@ func (r *PostRepositoryImpl) GetLikedPostIdsForUser(ctx context.Context, userId 
 }
 
 func (r *PostRepositoryImpl) CreatePostLike(ctx context.Context, postLike *model.PostLike) error {
-	return r.db.DB.WithContext(ctx).Create(postLike).Error
+	return r.db.DB.WithContext(ctx).
+		Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "post_id"}, {Name: "user_id"}},
+			DoNothing: true,
+		}).
+		Create(postLike).Error
 }
 
 func (r *PostRepositoryImpl) DeletePostLike(ctx context.Context, postId, userId int) error {

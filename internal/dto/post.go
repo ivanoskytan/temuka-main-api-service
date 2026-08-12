@@ -56,8 +56,14 @@ type PostCommentSummary struct {
 	CreatedAt      time.Time `json:"CreatedAt"`
 }
 
+type PostDataResponse struct {
+	*model.Post
+	IsLiked bool `json:"IsLiked"`
+	IsSaved bool `json:"IsSaved"`
+}
+
 type PostDetailResponse struct {
-	Post     *model.Post          `json:"post"`
+	PostData PostDataResponse     `json:"post"`
 	User     PostUserSummary      `json:"user"`
 	Comments []PostCommentSummary `json:"comments"`
 }

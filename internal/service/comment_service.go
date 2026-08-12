@@ -59,8 +59,8 @@ func (s *CommentServiceImpl) AddComment(ctx context.Context, data dto.AddComment
 		newNotification := model.Notification{
 			UserID:    post.UserID,
 			ActorID:   data.UserID,
-			PostID:    data.PostID,
-			CommentID: newComment.ID,
+			PostID:    &data.PostID,
+			CommentID: &newComment.ID,
 			Type:      "comment",
 			Message:   "New comment on your post",
 			Read:      false,
