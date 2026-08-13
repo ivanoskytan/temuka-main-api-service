@@ -98,8 +98,9 @@ func Routes(db database.PostgresWrapper, redis keyValueStore.RedisWrapper, stora
 	commentRouter.Use(middleware.CheckAuth)
 	commentRouter.HandleFunc("", commentHandler.AddComment).Methods("POST")
 	commentRouter.HandleFunc("/replies", commentHandler.ShowReplies).Methods("GET")
-	commentRouter.HandleFunc("/{commentId}", commentHandler.DeleteComment).Methods("DELETE")
+	commentRouter.HandleFunc("/{comment_id}", commentHandler.DeleteComment).Methods("DELETE")
 	commentRouter.HandleFunc("/show", commentHandler.ShowCommentsByPost).Methods("GET")
+	commentRouter.HandleFunc("/{user_id}", commentHandler.GetCommentsByUser).Methods("GET")
 
 	communityRouter := router.PathPrefix("/api/community").Subrouter()
 	communityRouter.Use(middleware.CheckAuth)

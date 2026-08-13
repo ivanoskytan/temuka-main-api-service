@@ -14,6 +14,7 @@ type CommentService interface {
 	ShowCommentsByPost(ctx context.Context, data dto.ShowCommentsRequest) ([]model.Comment, error)
 	DeleteComment(ctx context.Context, commentID int) error
 	ShowReplies(ctx context.Context, data dto.ShowRepliesRequest) ([]model.Comment, error)
+	GetCommentsByUser(ctx context.Context, userID int) ([]model.Comment, error)
 }
 
 type CommentServiceImpl struct {
@@ -78,6 +79,14 @@ func (s *CommentServiceImpl) ShowCommentsByPost(ctx context.Context, data dto.Sh
 	comments, err := s.CommentRepository.GetCommentsByPostID(ctx, data.PostID)
 	if err != nil {
 		return nil, errors.New("error retrieving comments")
+	}
+	return comments, nil
+}
+
+func (s *CommentServiceImpl) GetCommentsByUser(ctx context.Context, userID int) ([]model.Comment, error) {
+	comments, err := s.CommentRepository.GetCommentsByUserID(ctx, userID)
+	if err != nil {
+		return nil, errors.New("error retrieving comments by user")
 	}
 	return comments, nil
 }

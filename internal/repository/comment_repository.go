@@ -14,6 +14,7 @@ type CommentRepository interface {
 	DeleteComment(ctx context.Context, commentID int) error
 	GetRepliesByParentID(ctx context.Context, parentID int) ([]model.Comment, error)
 	GetCommentDetailByID(ctx context.Context, id int) (*model.Comment, error)
+	GetCommentsByUserID(ctx context.Context, userID int) ([]model.Comment, error)
 }
 
 type CommentRepositoryImpl struct {
@@ -40,6 +41,17 @@ func (r *CommentRepositoryImpl) GetCommentsByPostID(ctx context.Context, postID 
 	db := r.db.DB.WithContext(ctx).Where("post_id = ?", postID)
 	if err := db.Find(&comments).Error; err != nil {
 		return nil, fmt.Errorf("failed to get comments: %w", err)
+	}
+
+	return comments, nil
+}
+
+func (r *CommentRepositoryImpl) GetCommentsByUserID(ctx context.Context, userID int) ([]model.Comment, error) {
+	var comments []model.Comment
+
+	db := r.db.DB.WithContext(ctx).Where("user_id = ?", userID)
+	if err := db.Find(&comments).Error; err != nil {
+		return nil, fmt.Errorf("failed to get comments by user: %w", err)
 	}
 
 	return comments, nil
