@@ -2,6 +2,7 @@ package key_value_store
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -21,12 +22,15 @@ func NewRedisConnection(redisHost, redisUser, redisPassword string) (*RedisWrapp
 		Username: redisUser,
 		Password: redisPassword,
 		DB:       0,
+		TLSConfig: &tls.Config{
+			MinVersion: tls.VersionTLS12,
+		},
 	})
 
 	ctx := context.Background()
 	_, err := client.Ping(ctx).Result()
 	if err != nil {
-		log.Fatal("Failed to connect to Redis")
+		log.Fatal("Failed to connect to Redis: %w", err)
 		return nil, fmt.Errorf("Failed to connect to Redis: %w", err)
 	}
 

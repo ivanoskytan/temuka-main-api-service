@@ -14,7 +14,7 @@ import (
 	"github.com/temuka-api-service/util/websocket"
 )
 
-func Routes(db database.PostgresWrapper, redis keyValueStore.RedisWrapper, storage fileStorage.S3Wrapper, rmq queue.RabbitMQChannel, hub *websocket.Hub) *mux.Router {
+func Routes(db database.PostgresWrapper, redis keyValueStore.RedisWrapper, storage fileStorage.AzureBlobWrapper, rmq queue.RabbitMQChannel, hub *websocket.Hub) *mux.Router {
 	router := mux.NewRouter()
 
 	// Init repositories

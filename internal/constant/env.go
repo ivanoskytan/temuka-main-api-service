@@ -7,6 +7,10 @@ const (
 	EnvS3Bucket           = "S3_BUCKET_NAME"
 	EnvS3Endpoint         = "S3_ENDPOINT"
 
+	EnvAzureStorageAccountName   = "AZURE_STORAGE_ACCOUNT_NAME"
+	EnvAzureStorageAccountKey    = "AZURE_STORAGE_ACCOUNT_KEY"
+	EnvAzureStorageContainerName = "AZURE_STORAGE_CONTAINER_NAME"
+
 	EnvRabbitMQURL = "RABBITMQ_URL"
 
 	EnvPgHost = "PG_HOST"
@@ -14,6 +18,7 @@ const (
 	EnvPgUser = "PG_USER"
 	EnvPgPass = "PG_PASSWORD"
 	EnvPgDB   = "PG_DATABASE"
+	EnvPgSSL  = "PG_SSLMODE"
 
 	EnvRedisHost = "REDIS_HOST"
 	EnvRedisUser = "REDIS_USER"

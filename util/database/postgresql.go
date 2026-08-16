@@ -27,10 +27,10 @@ type PostgresWrapper struct {
 	DB *gorm.DB
 }
 
-func NewPostgreSQL(pgHost, pgUser, pgPassword, pgPort, dbName string) (*PostgresWrapper, error) {
+func NewPostgreSQL(pgHost, pgUser, pgPassword, pgPort, dbName, sslMode string) (*PostgresWrapper, error) {
 	dsn := fmt.Sprintf(
-		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
-		pgHost, pgUser, pgPassword, dbName, pgPort,
+		"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
+		pgHost, pgUser, pgPassword, dbName, pgPort, sslMode,
 	)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})

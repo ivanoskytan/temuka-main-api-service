@@ -15,11 +15,11 @@ type FileService interface {
 }
 
 type FileServiceImpl struct {
-	storage           fileStorage.S3Wrapper
+	storage           fileStorage.AzureBlobWrapper
 	allowedExtensions map[string]bool
 }
 
-func NewFileService(storage fileStorage.S3Wrapper) FileService {
+func NewFileService(storage fileStorage.AzureBlobWrapper) FileService {
 	return &FileServiceImpl{
 		storage: storage,
 		allowedExtensions: map[string]bool{

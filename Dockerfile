@@ -1,17 +1,15 @@
-FROM golang:1.22.2-alpine
-
+FROM golang:1.22-alpine AS builder
 WORKDIR /app
 
 COPY go.mod go.sum ./
-
-RUN go mod tidy
+RUN go mod download
 
 COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -o server ./cmd/server/main.go
 
-RUN go build -o main ./cmd/server/main.go
-
-RUN chmod +x main
+FROM alpine:latest
+WORKDIR /app
+COPY --from=builder /app/server .
 
 EXPOSE 3200
-
-CMD ["./main"]
+CMD ["./server"]

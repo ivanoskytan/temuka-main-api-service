@@ -40,6 +40,7 @@ func main() {
 		os.Getenv(constant.EnvPgPass),
 		os.Getenv(constant.EnvPgPort),
 		os.Getenv(constant.EnvPgDB),
+		os.Getenv(constant.EnvPgSSL),
 	)
 	if err != nil {
 		log.Fatalf("Error initiating relational database: %v", err)
@@ -54,12 +55,10 @@ func main() {
 		log.Fatalf("Error initiating key value store: %v", err)
 	}
 
-	storage, err := file_storage.NewS3(
-		os.Getenv(constant.EnvAWSRegion),
-		os.Getenv(constant.EnvAWSAccessKeyID),
-		os.Getenv(constant.EnvAWSSecretAccessKey),
-		os.Getenv(constant.EnvS3Bucket),
-		os.Getenv(constant.EnvS3Endpoint),
+	storage, err := file_storage.NewAzureBlob(
+		os.Getenv(constant.EnvAzureStorageAccountName),
+		os.Getenv(constant.EnvAzureStorageAccountKey),
+		os.Getenv(constant.EnvAzureStorageContainerName),
 	)
 	if err != nil {
 		log.Fatalf("Error initiating file storage: %v", err)

@@ -21,6 +21,7 @@ func main() {
 		os.Getenv("PG_PASSWORD"),
 		os.Getenv("PG_PORT"),
 		os.Getenv("PG_DATABASE"),
+		os.Getenv("PG_SSLMODE"),
 	)
 	if err != nil {
 		log.Fatalf("Error connecting to database: %v", err)
