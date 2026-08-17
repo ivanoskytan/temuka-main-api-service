@@ -17,7 +17,7 @@ import (
 
 func EnableCors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:4000")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		if r.Method == http.MethodOptions {
@@ -29,10 +29,12 @@ func EnableCors(next http.Handler) http.Handler {
 }
 
 func main() {
-	if err := godotenv.Load(".env"); err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
-		os.Exit(1)
-	}
+	// if err := godotenv.Load(".env"); err != nil {
+	// 	log.Fatalf("Error loading .env file: %v", err)
+	// 	os.Exit(1)
+	// }
+
+	_ = godotenv.Load()
 
 	postgres, err := database.NewPostgreSQL(
 		os.Getenv(constant.EnvPgHost),
