@@ -20,6 +20,7 @@ jobs:
         run: |
           az acr build \
             --registry temukaacr \
+            --resource-group temuka \
             --image temuka-main-api:${{ github.sha }} \
             --image temuka-main-api:latest \
             .
