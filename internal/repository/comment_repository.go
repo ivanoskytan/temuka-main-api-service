@@ -38,7 +38,7 @@ func (r *CommentRepositoryImpl) CreateComment(ctx context.Context, comment *mode
 func (r *CommentRepositoryImpl) GetCommentsByPostID(ctx context.Context, postID int) ([]model.Comment, error) {
 	var comments []model.Comment
 
-	db := r.db.DB.WithContext(ctx).Where("post_id = ?", postID)
+	db := r.db.DB.WithContext(ctx).Preload("User").Where("post_id = ?", postID)
 	if err := db.Find(&comments).Error; err != nil {
 		return nil, fmt.Errorf("failed to get comments: %w", err)
 	}

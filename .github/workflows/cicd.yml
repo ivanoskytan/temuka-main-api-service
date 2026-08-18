@@ -1,72 +1,32 @@
-name: Deploy Main API Service
+name: Build and Deploy Temuka Main API Service to Azure
 
 on:
   push:
-    branches:
-      - master
+    branches: [ "master" ]
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Source
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Create .env file
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Build and Push Image via ACR
         run: |
-          echo "AWS_REGION=${{ secrets.AWS_REGION }}" >> .env
-          echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> .env
-          echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> .env
-          echo "S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}" >> .env
-          echo "PG_HOST=${{ secrets.PG_HOST }}" >> .env
-          echo "PG_USER=${{ secrets.PG_USER }}" >> .env
-          echo "PG_PASSWORD=${{ secrets.PG_PASSWORD }}" >> .env
-          echo "PG_PORT=${{ secrets.PG_PORT }}" >> .env
-          echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env
-          echo "SERVER_PORT=${{ secrets.SERVER_PORT }}" >> .env
-          echo "REDIS_HOST=${{ secrets.REDIS_HOST }}" >> .env
-          echo "REDIS_USER=${{ secrets.REDIS_USER }}" >> .env
-          echo "REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}" >> .env
+          az acr build \
+            --registry temukaacr \
+            --image temuka-main-api:${{ github.sha }} \
+            --image temuka-main-api:latest \
+            .
 
-      - name: Docker Cleanup (before build)
-        run: |
-          sudo docker system prune -a -f --volumes
-          
-      - name: Login to Docker Hub
-        run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Build Docker Image
-        run: docker build -t ivanoskytan/temuka-main-api-service:latest .
-
-      - name: Push Docker Image
-        run: docker push ivanoskytan/temuka-main-api-service:latest
-
-      - name: Docker Cleanup (after build)
-        run: |
-          sudo docker system prune -a -f --volumes
-
-  deploy:
-    needs: build
-    runs-on: self-hosted
-    steps:
-      - name: Docker Cleanup (before pull)
-        run: |
-          sudo docker system prune -a -f --volumes
-
-      - name: Pull Docker Image
-        run: sudo docker pull ivanoskytan/temuka-main-api-service:latest
-
-      - name: Delete Old Container
-        run: |
-          sudo docker stop temuka-main-api-service || true
-          sudo docker rm temuka-main-api-service || true
-
-      - name: Run Docker Container
-        run: |
-          sudo docker run -d -p 3200:${{ secrets.SERVER_PORT }} \
-            --name temuka-main-api-service \
-            ivanoskytan/temuka-main-api-service:latest
-
-      - name: Docker Cleanup (after deploy)
-        run: |
-          sudo docker system prune -a -f --volumes
+      - name: Deploy to Azure Container App
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          containerAppName: temuka-main-api
+          resourceGroup: mental-health-ugm-chatbot
+          imageToDeploy: temukaacr.azurecr.io/temuka-main-api:${{ github.sha }}

@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -37,7 +36,7 @@ func NewAuthService(userRepository repository.UserRepository, suggestionPublishe
 func (c *AuthServiceImpl) Register(ctx context.Context, data dto.RegisterRequest) (*model.User, error) {
 	hashedPwd, err := bcrypt.GenerateFromPassword([]byte(data.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, errors.New("error hashing password")
+		return nil, fmt.Errorf("error hashing password")
 	}
 
 	newUser := model.User{
@@ -49,7 +48,7 @@ func (c *AuthServiceImpl) Register(ctx context.Context, data dto.RegisterRequest
 	}
 
 	if err := c.UserRepository.CreateUser(ctx, &newUser); err != nil {
-		return nil, errors.New("error creating user")
+		return nil, fmt.Errorf("error creating user")
 	}
 
 	go c.SuggestionPublisher.PublishSuggestionEvent(
@@ -58,6 +57,8 @@ func (c *AuthServiceImpl) Register(ctx context.Context, data dto.RegisterRequest
 		fmt.Sprintf("%d", newUser.ID),
 		map[string]interface{}{
 			"title": newUser.Username,
+			"icon":  newUser.ProfilePicture,
+			"slug":  "user/" + strconv.Itoa(newUser.ID),
 		},
 	)
 
@@ -67,11 +68,11 @@ func (c *AuthServiceImpl) Register(ctx context.Context, data dto.RegisterRequest
 func (c *AuthServiceImpl) Login(ctx context.Context, data dto.LoginRequest) (map[string]interface{}, error) {
 	user, err := c.UserRepository.GetUserByEmail(ctx, data.Email)
 	if err != nil {
-		return nil, errors.New("user not found")
+		return nil, fmt.Errorf("user not found")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(data.Password)); err != nil {
-		return nil, errors.New("invalid credentials")
+		return nil, fmt.Errorf("invalid credentials")
 	}
 
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
@@ -82,7 +83,7 @@ func (c *AuthServiceImpl) Login(ctx context.Context, data dto.LoginRequest) (map
 
 	tokenString, err := accessToken.SignedString([]byte(os.Getenv("JWT_SECRET_KEY")))
 	if err != nil {
-		return nil, errors.New("error generating token")
+		return nil, fmt.Errorf("error generating token")
 	}
 
 	response := map[string]interface{}{
@@ -97,40 +98,40 @@ func (c *AuthServiceImpl) ResetPassword(ctx context.Context, data dto.ResetPassw
 		return []byte(os.Getenv("JWT_SECRET_KEY")), nil
 	})
 	if err != nil {
-		return errors.New("invalid token")
+		return fmt.Errorf("invalid token")
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		if claims["email"] != data.Email {
-			return errors.New("invalid token email")
+			return fmt.Errorf("invalid token email")
 		}
 
 		if data.NewPassword != data.NewPasswordConfirmation {
-			return errors.New("passwords do not match")
+			return fmt.Errorf("passwords do not match")
 		}
 
 		hashedNewPwd, err := bcrypt.GenerateFromPassword([]byte(data.NewPassword), bcrypt.DefaultCost)
 		if err != nil {
-			return errors.New("error hashing new password")
+			return fmt.Errorf("error hashing new password")
 		}
 
 		userID, err := strconv.Atoi(data.UserID)
 		if err != nil {
-			return errors.New("invalid user ID")
+			return fmt.Errorf("invalid user ID")
 		}
 
 		user, err := c.UserRepository.GetUserByID(ctx, userID)
 		if err != nil {
-			return errors.New("user not found")
+			return fmt.Errorf("user not found")
 		}
 
 		user.Password = string(hashedNewPwd)
 		if err := c.UserRepository.UpdateUser(ctx, userID, user); err != nil {
-			return errors.New("error updating password")
+			return fmt.Errorf("error updating password")
 		}
 
 		return nil
 	}
 
-	return errors.New("invalid token")
+	return fmt.Errorf("invalid token")
 }

@@ -2,7 +2,7 @@ package service
 
 import (
 	"context"
-	"errors"
+	"fmt"
 
 	"github.com/temuka-api-service/internal/dto"
 	"github.com/temuka-api-service/internal/model"
@@ -41,7 +41,7 @@ func NewCommentService(
 func (s *CommentServiceImpl) AddComment(ctx context.Context, data dto.AddCommentRequest) (*model.Comment, error) {
 	post, err := s.PostRepository.GetPostDetailByID(ctx, data.PostID)
 	if err != nil {
-		return nil, errors.New("post not found")
+		return nil, fmt.Errorf("post not found")
 	}
 
 	newComment := model.Comment{
@@ -52,7 +52,7 @@ func (s *CommentServiceImpl) AddComment(ctx context.Context, data dto.AddComment
 	}
 
 	if err := s.CommentRepository.CreateComment(ctx, &newComment); err != nil {
-		return nil, errors.New("error creating comment")
+		return nil, fmt.Errorf("error creating comment")
 	}
 
 	// Create notification if commenter isn’t post owner
@@ -68,7 +68,7 @@ func (s *CommentServiceImpl) AddComment(ctx context.Context, data dto.AddComment
 		}
 
 		if err := s.NotificationRepository.CreateNotification(ctx, &newNotification); err != nil {
-			return nil, errors.New("error creating notification")
+			return nil, fmt.Errorf("error creating notification")
 		}
 	}
 
@@ -78,7 +78,7 @@ func (s *CommentServiceImpl) AddComment(ctx context.Context, data dto.AddComment
 func (s *CommentServiceImpl) ShowCommentsByPost(ctx context.Context, data dto.ShowCommentsRequest) ([]model.Comment, error) {
 	comments, err := s.CommentRepository.GetCommentsByPostID(ctx, data.PostID)
 	if err != nil {
-		return nil, errors.New("error retrieving comments")
+		return nil, fmt.Errorf("error retrieving comments")
 	}
 	return comments, nil
 }
@@ -86,14 +86,14 @@ func (s *CommentServiceImpl) ShowCommentsByPost(ctx context.Context, data dto.Sh
 func (s *CommentServiceImpl) GetCommentsByUser(ctx context.Context, userID int) ([]model.Comment, error) {
 	comments, err := s.CommentRepository.GetCommentsByUserID(ctx, userID)
 	if err != nil {
-		return nil, errors.New("error retrieving comments by user")
+		return nil, fmt.Errorf("error retrieving comments by user")
 	}
 	return comments, nil
 }
 
 func (s *CommentServiceImpl) DeleteComment(ctx context.Context, commentID int) error {
 	if err := s.CommentRepository.DeleteComment(ctx, commentID); err != nil {
-		return errors.New("error deleting comment")
+		return fmt.Errorf("error deleting comment")
 	}
 	return nil
 }

@@ -2,7 +2,7 @@ package service
 
 import (
 	"context"
-	"errors"
+	"fmt"
 
 	"github.com/temuka-api-service/internal/dto"
 	"github.com/temuka-api-service/internal/model"
@@ -57,7 +57,7 @@ func (s *ConversationServiceImpl) AddMessage(ctx context.Context, req dto.AddMes
 	}
 
 	if participantID == 0 {
-		return nil, errors.New("user is not a participant in the conversation")
+		return nil, fmt.Errorf("user is not a participant in the conversation")
 	}
 
 	msg := &model.Message{

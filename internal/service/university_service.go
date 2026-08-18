@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -53,7 +52,7 @@ func (s *UniversityServiceImpl) AddUniversity(ctx context.Context, req dto.AddUn
 	}
 
 	if err := s.UniversityRepository.CreateUniversity(ctx, &university); err != nil {
-		return nil, errors.New("failed to create university")
+		return nil, fmt.Errorf("failed to create university")
 	}
 
 	go s.SuggestionPublisher.PublishSuggestionEvent(
@@ -73,7 +72,7 @@ func (s *UniversityServiceImpl) AddUniversity(ctx context.Context, req dto.AddUn
 func (s *UniversityServiceImpl) UpdateUniversity(ctx context.Context, id int, req dto.UpdateUniversityRequest) (*model.University, error) {
 	existing, err := s.UniversityRepository.GetUniversityByID(ctx, id)
 	if err != nil {
-		return nil, errors.New("university not found")
+		return nil, fmt.Errorf("university not found")
 	}
 
 	existing.Name = req.Name
@@ -90,7 +89,7 @@ func (s *UniversityServiceImpl) UpdateUniversity(ctx context.Context, id int, re
 	existing.Logo = req.Logo
 
 	if err := s.UniversityRepository.UpdateUniversity(ctx, id, existing); err != nil {
-		return nil, errors.New("failed to update university")
+		return nil, fmt.Errorf("failed to update university")
 	}
 
 	go s.SuggestionPublisher.PublishSuggestionEvent(
@@ -110,7 +109,7 @@ func (s *UniversityServiceImpl) UpdateUniversity(ctx context.Context, id int, re
 func (s *UniversityServiceImpl) GetUniversityDetail(ctx context.Context, slug string) (*model.University, error) {
 	university, err := s.UniversityRepository.GetUniversityBySlug(ctx, slug)
 	if err != nil {
-		return nil, errors.New("university not found")
+		return nil, fmt.Errorf("university not found")
 	}
 	return university, nil
 }
@@ -128,12 +127,12 @@ func (s *UniversityServiceImpl) AddReview(ctx context.Context, req dto.AddReview
 	}
 
 	if err := s.ReviewRepository.SetReview(ctx, &review); err != nil {
-		return nil, errors.New("failed to create review")
+		return nil, fmt.Errorf("failed to create review")
 	}
 
 	university, err := s.UniversityRepository.GetUniversityByID(ctx, req.UniversityID)
 	if err != nil {
-		return nil, errors.New("university not found")
+		return nil, fmt.Errorf("university not found")
 	}
 
 	universityRating := 0
@@ -153,7 +152,7 @@ func (s *UniversityServiceImpl) AddReview(ctx context.Context, req dto.AddReview
 	university.TotalReviews = &universityTotalReviews
 
 	if err := s.UniversityRepository.UpdateUniversity(ctx, req.UniversityID, university); err != nil {
-		return nil, errors.New("failed to update university rating")
+		return nil, fmt.Errorf("failed to update university rating")
 	}
 
 	go s.SuggestionPublisher.PublishSuggestionEvent(
@@ -169,7 +168,7 @@ func (s *UniversityServiceImpl) AddReview(ctx context.Context, req dto.AddReview
 func (s *UniversityServiceImpl) GetUniversityReviews(ctx context.Context, universityID int) ([]dto.UniversityReviewResponse, error) {
 	reviews, err := s.ReviewRepository.GetReviewsByUniversityID(ctx, universityID)
 	if err != nil {
-		return nil, errors.New("failed to get reviews")
+		return nil, fmt.Errorf("failed to get reviews")
 	}
 
 	var universityReviewResponse []dto.UniversityReviewResponse

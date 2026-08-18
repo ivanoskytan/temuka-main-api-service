@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/temuka-api-service/internal/constant"
@@ -44,7 +43,7 @@ func (s *MajorServiceImpl) AddMajor(ctx context.Context, req dto.AddMajorRequest
 	}
 
 	if err := s.MajorRepository.CreateMajor(ctx, &major); err != nil {
-		return nil, errors.New("failed to create major record")
+		return nil, fmt.Errorf("failed to create major record")
 	}
 
 	go s.SuggestionPublisher.PublishSuggestionEvent(
@@ -72,7 +71,7 @@ func (s *MajorServiceImpl) GetMajorDetail(ctx context.Context, id int) (*model.M
 func (s *MajorServiceImpl) GetMajors(ctx context.Context) ([]dto.MajorDetailResponse, error) {
 	majors, err := s.MajorRepository.GetMajorList(ctx)
 	if err != nil {
-		return nil, errors.New("failed to retrieve majors for the specified university")
+		return nil, fmt.Errorf("failed to retrieve majors for the specified university")
 	}
 
 	var majorDetailResponse []dto.MajorDetailResponse
@@ -100,12 +99,12 @@ func (s *MajorServiceImpl) AddMajorReview(ctx context.Context, req dto.AddMajorR
 	}
 
 	if err := s.MajorRepository.SetMajorReview(ctx, &review); err != nil {
-		return nil, errors.New("failed to save major review")
+		return nil, fmt.Errorf("failed to save major review")
 	}
 
 	major, err := s.MajorRepository.GetMajorByID(ctx, req.MajorID)
 	if err != nil {
-		return nil, errors.New("associated major not found")
+		return nil, fmt.Errorf("associated major not found")
 	}
 
 	currentRating := 0
@@ -125,7 +124,7 @@ func (s *MajorServiceImpl) AddMajorReview(ctx context.Context, req dto.AddMajorR
 	major.TotalReviews = &currentTotalReviews
 
 	if err := s.MajorRepository.UpdateMajor(ctx, req.MajorID, major); err != nil {
-		return nil, errors.New("failed to update major moving averages")
+		return nil, fmt.Errorf("failed to update major moving averages")
 	}
 
 	go s.SuggestionPublisher.PublishSuggestionEvent(

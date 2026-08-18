@@ -2,7 +2,7 @@ package service
 
 import (
 	"context"
-	"errors"
+	"fmt"
 
 	"github.com/temuka-api-service/internal/dto"
 	"github.com/temuka-api-service/internal/model"
@@ -40,7 +40,7 @@ func (s *LocationServiceImpl) AddLocation(ctx context.Context, req *dto.AddLocat
 func (s *LocationServiceImpl) UpdateLocation(ctx context.Context, id int, req *dto.UpdateLocationRequest) (*model.Location, error) {
 	location, err := s.locationRepo.GetLocationById(ctx, id)
 	if err != nil {
-		return nil, errors.New("location not found")
+		return nil, fmt.Errorf("location not found")
 	}
 
 	location.Name = req.Name

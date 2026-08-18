@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -48,7 +47,7 @@ func (s *UserServiceImpl) SearchUsers(ctx context.Context, data dto.SearchUsersD
 	}
 
 	if len(filtered) == 0 {
-		return nil, errors.New("no users found")
+		return nil, fmt.Errorf("no users found")
 	}
 
 	return filtered, nil
@@ -57,7 +56,7 @@ func (s *UserServiceImpl) SearchUsers(ctx context.Context, data dto.SearchUsersD
 func (s *UserServiceImpl) GetUserDetail(ctx context.Context, data dto.GetUserDetailDTO) (*model.User, error) {
 	user, err := s.UserRepository.GetUserByID(ctx, data.UserID)
 	if err != nil {
-		return nil, errors.New("user not found")
+		return nil, fmt.Errorf("user not found")
 	}
 	return user, nil
 }
@@ -70,7 +69,7 @@ func (s *UserServiceImpl) CreateUser(ctx context.Context, data dto.CreateUserDTO
 	}
 
 	if err := s.UserRepository.CreateUser(ctx, &newUser); err != nil {
-		return nil, errors.New("error creating user")
+		return nil, fmt.Errorf("error creating user")
 	}
 
 	return &newUser, nil
@@ -85,11 +84,11 @@ func (s *UserServiceImpl) UpdateUser(ctx context.Context, data dto.UpdateUserDTO
 	}
 
 	if err := s.UserRepository.UpdateUser(ctx, data.UserID, &updatedUser); err != nil {
-		return errors.New("error updating user")
+		return fmt.Errorf("error updating user")
 	}
 
 	go s.SuggestionPublisher.PublishSuggestionEvent(
-		constant.EventOperationCreate,
+		constant.EventOperationUpdate,
 		constant.EventEntityTypeUser,
 		fmt.Sprintf("%d", data.UserID),
 		map[string]interface{}{
@@ -103,7 +102,7 @@ func (s *UserServiceImpl) UpdateUser(ctx context.Context, data dto.UpdateUserDTO
 
 func (s *UserServiceImpl) FollowUser(ctx context.Context, data dto.FollowUserDTO) error {
 	if _, err := s.UserRepository.GetUserByID(ctx, data.TargetID); err != nil {
-		return errors.New("target user not found")
+		return fmt.Errorf("target user not found")
 	}
 
 	newFollow := model.UserFollow{
@@ -112,7 +111,7 @@ func (s *UserServiceImpl) FollowUser(ctx context.Context, data dto.FollowUserDTO
 	}
 
 	if err := s.UserRepository.CreateUserFollow(ctx, &newFollow); err != nil {
-		return errors.New("error following user")
+		return fmt.Errorf("error following user")
 	}
 
 	go s.SuggestionPublisher.PublishSuggestionEvent(
@@ -127,12 +126,12 @@ func (s *UserServiceImpl) FollowUser(ctx context.Context, data dto.FollowUserDTO
 
 func (s *UserServiceImpl) GetFollowers(ctx context.Context, data dto.GetFollowersDTO) ([]model.UserFollow, error) {
 	if _, err := s.UserRepository.GetUserByID(ctx, data.UserID); err != nil {
-		return nil, errors.New("user not found")
+		return nil, fmt.Errorf("user not found")
 	}
 
 	followers, err := s.UserRepository.GetFollowers(ctx, data.UserID)
 	if err != nil {
-		return nil, errors.New("error retrieving followers")
+		return nil, fmt.Errorf("error retrieving followers")
 	}
 
 	return followers, nil

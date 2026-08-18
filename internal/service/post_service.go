@@ -74,19 +74,19 @@ func (s *PostServiceImpl) CreatePost(ctx context.Context, req *dto.CreatePostReq
 	var user *model.User
 	user, err := s.userRepo.GetUserByID(ctx, req.UserID)
 	if err != nil {
-		return nil, errors.New("error fetching user for anonymous post")
+		return nil, fmt.Errorf("error fetching user for anonymous post")
 	}
 
 	if req.IsAnonymous {
 		if user.UniversityID == nil || user.University == nil {
-			return nil, errors.New("user must belong to a university to post anonymously")
+			return nil, fmt.Errorf("user must belong to a university to post anonymously")
 		}
 
 		newPost.UniversityOrigin = user.University.Name
 	}
 
 	if err := s.postRepo.CreatePost(ctx, &newPost); err != nil {
-		return nil, errors.New("error creating post")
+		return nil, fmt.Errorf("error creating post")
 	}
 
 	if req.CommunityID != nil && *req.CommunityID != 0 {
@@ -106,10 +106,10 @@ func (s *PostServiceImpl) CreatePost(ctx context.Context, req *dto.CreatePostReq
 		}
 
 		if err := s.communityRepo.CreateCommunityPost(ctx, &communityPost); err != nil {
-			return nil, errors.New("error linking post to community")
+			return nil, fmt.Errorf("error linking post to community")
 		}
 		if err := s.communityRepo.UpdateCommunityPostsCount(ctx, *req.CommunityID); err != nil {
-			return nil, errors.New("error updating community posts count")
+			return nil, fmt.Errorf("error updating community posts count")
 		}
 	}
 
@@ -122,6 +122,7 @@ func (s *PostServiceImpl) CreatePost(ctx context.Context, req *dto.CreatePostReq
 			"content": newPost.Description,
 			"user_id": newPost.UserID,
 			"icon":    user.ProfilePicture,
+			"slug":    "post/" + fmt.Sprintf("%d", newPost.ID),
 		},
 	)
 
@@ -153,7 +154,7 @@ func (s *PostServiceImpl) GetPostDetail(ctx context.Context, postID, currentUser
 				Content:        c.Content,
 				ParentID:       c.ParentID,
 				PostID:         c.PostID,
-				ProfilePicture: c.User.Username,
+				ProfilePicture: c.User.ProfilePicture,
 				Votes:          len(c.Votes),
 				CreatedAt:      c.CreatedAt,
 			})
@@ -199,7 +200,7 @@ func (s *PostServiceImpl) UpdatePost(ctx context.Context, postID int, req *dto.U
 	}
 
 	if err := s.postRepo.UpdatePost(ctx, postID, &updatedPost); err != nil {
-		return nil, errors.New("error updating post")
+		return nil, fmt.Errorf("error updating post")
 	}
 
 	go s.suggestionPublisher.PublishSuggestionEvent(
@@ -292,7 +293,7 @@ func (s *PostServiceImpl) LikePost(ctx context.Context, postID, userID int) erro
 	post, err := s.postRepo.GetPostDetailByID(ctx, postID)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return errors.New("post not found")
+			return fmt.Errorf("post not found")
 		}
 		return err
 	}
@@ -302,12 +303,12 @@ func (s *PostServiceImpl) LikePost(ctx context.Context, postID, userID int) erro
 		return err
 	}
 	if isLiked {
-		return errors.New("post already liked by the user")
+		return fmt.Errorf("post already liked by the user")
 	}
 
 	liker, err := s.userRepo.GetUserByID(ctx, userID)
 	if err != nil {
-		return errors.New("user not found")
+		return fmt.Errorf("user not found")
 	}
 
 	err = s.database.Transaction(ctx, func(txCtx context.Context) error {
@@ -368,7 +369,7 @@ func (s *PostServiceImpl) UnlikePost(ctx context.Context, postID, userID int) er
 	post, err := s.postRepo.GetPostDetailByID(ctx, postID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return errors.New("post not found")
+			return fmt.Errorf("post not found")
 		}
 		return err
 	}
@@ -404,7 +405,7 @@ func (s *PostServiceImpl) SavePost(ctx context.Context, postID, userID int) erro
 	_, err := s.postRepo.GetPostDetailByID(ctx, postID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return errors.New("post not found")
+			return fmt.Errorf("post not found")
 		}
 		return err
 	}
@@ -430,7 +431,7 @@ func (s *PostServiceImpl) UnsavePost(ctx context.Context, postID, userID int) er
 	_, err := s.postRepo.GetPostDetailByID(ctx, postID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return errors.New("post not found")
+			return fmt.Errorf("post not found")
 		}
 		return err
 	}

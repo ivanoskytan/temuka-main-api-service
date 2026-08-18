@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 
 	"github.com/temuka-api-service/internal/constant"
@@ -38,27 +39,26 @@ func (s *FileServiceImpl) UploadFile(ctx context.Context, fileName string, fileD
 		return "", fmt.Errorf("file type not allowed")
 	}
 
-	s3Key := fmt.Sprintf("uploads/%s", fileName)
+	blobName := fmt.Sprintf("uploads/%s", fileName)
 
 	reader, ok := fileData.(io.Reader)
 	if !ok {
 		return "", fmt.Errorf("invalid file reader")
 	}
 
-	if err := s.storage.UploadStream(ctx, s3Key, reader); err != nil {
+	if err := s.storage.UploadStream(ctx, blobName, reader); err != nil {
 		return "", err
 	}
 
 	var url string
-	fmt.Printf("S3 Endpoint: %s", constant.EnvS3Endpoint)
-	if constant.EnvS3Endpoint != "" {
-		url = fmt.Sprintf("%s/%s/%s", constant.EnvS3Endpoint, constant.EnvS3Bucket, s3Key)
+	if constant.EnvAzureStorageAccountName == "" {
+		url = fmt.Sprintf("%s/%s/%s", os.Getenv(constant.EnvS3Endpoint), os.Getenv(constant.EnvS3Bucket), blobName)
 	} else {
 		url = fmt.Sprintf(
-			"https://%s.s3.%s.amazonaws.com/%s",
-			constant.EnvS3Bucket,
-			constant.EnvAWSRegion,
-			s3Key,
+			"https://%s.blob.core.windows.net/%s/%s",
+			os.Getenv(constant.EnvAzureStorageAccountName),
+			os.Getenv(constant.EnvAzureStorageContainerName),
+			blobName,
 		)
 	}
 

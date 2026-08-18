@@ -2,7 +2,7 @@ package service
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"strconv"
 
 	"github.com/temuka-api-service/internal/dto"
@@ -57,7 +57,7 @@ func (s *ModeratorServiceImpl) SendModeratorRequest(ctx context.Context, data dt
 	}
 
 	if err := s.NotificationRepository.CreateNotification(ctx, &notification); err != nil {
-		return errors.New("error creating moderator notification")
+		return fmt.Errorf("error creating moderator notification")
 	}
 
 	return nil
@@ -65,7 +65,7 @@ func (s *ModeratorServiceImpl) SendModeratorRequest(ctx context.Context, data dt
 
 func (s *ModeratorServiceImpl) RemoveModerator(ctx context.Context, moderatorID int) error {
 	if err := s.ModeratorRepository.DeleteModerator(ctx, moderatorID); err != nil {
-		return errors.New("error removing moderator")
+		return fmt.Errorf("error removing moderator")
 	}
 	return nil
 }

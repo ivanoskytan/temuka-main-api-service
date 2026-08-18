@@ -2,7 +2,7 @@ package service
 
 import (
 	"context"
-	"errors"
+	"fmt"
 
 	"github.com/temuka-api-service/internal/model"
 	"github.com/temuka-api-service/internal/repository"
@@ -25,7 +25,7 @@ func NewNotificationService(notifRepo repository.NotificationRepository) Notific
 func (s *NotificationServiceImpl) GetNotificationsByUser(ctx context.Context, userID int) ([]model.Notification, error) {
 	notifications, err := s.NotificationRepository.GetNotificationsByUserID(ctx, userID)
 	if err != nil {
-		return nil, errors.New("error retrieving notifications")
+		return nil, fmt.Errorf("error retrieving notifications")
 	}
 	return notifications, nil
 }

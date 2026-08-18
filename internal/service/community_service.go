@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -46,7 +45,7 @@ func NewCommunityService(db database.PostgresWrapper, communityRepo repository.C
 
 func (s *CommunityServiceImpl) CreateCommunity(ctx context.Context, data dto.CreateCommunityRequest) (*model.Community, error) {
 	if !s.CommunityRepository.CheckCommunityNameAvailability(ctx, data.Name) {
-		return nil, errors.New("community with the same name already exists")
+		return nil, fmt.Errorf("community with the same name already exists")
 	}
 
 	newCommunity := model.Community{
@@ -89,7 +88,7 @@ func (s *CommunityServiceImpl) CreateCommunity(ctx context.Context, data dto.Cre
 	})
 
 	if err != nil {
-		return nil, errors.New("error creating community transaction")
+		return nil, fmt.Errorf("error creating community transaction: %w", err)
 	}
 
 	go s.SuggestionPublisher.PublishSuggestionEvent(
@@ -110,7 +109,7 @@ func (s *CommunityServiceImpl) CreateCommunity(ctx context.Context, data dto.Cre
 func (s *CommunityServiceImpl) GetCommunities(ctx context.Context) ([]model.Community, error) {
 	communities, err := s.CommunityRepository.GetCommunities(ctx)
 	if err != nil {
-		return nil, errors.New("error retrieving communities")
+		return nil, fmt.Errorf("error retrieving communities")
 	}
 	return communities, nil
 }
@@ -125,7 +124,7 @@ func (s *CommunityServiceImpl) UpdateCommunity(ctx context.Context, id int, data
 	}
 
 	if err := s.CommunityRepository.UpdateCommunity(ctx, id, &updated); err != nil {
-		return nil, errors.New("error updating community")
+		return nil, fmt.Errorf("error updating community")
 	}
 
 	go s.SuggestionPublisher.PublishSuggestionEvent(
@@ -145,7 +144,7 @@ func (s *CommunityServiceImpl) UpdateCommunity(ctx context.Context, id int, data
 
 func (s *CommunityServiceImpl) DeleteCommunity(ctx context.Context, id int) error {
 	if err := s.CommunityRepository.DeleteCommunity(ctx, id); err != nil {
-		return errors.New("error deleting community")
+		return fmt.Errorf("error deleting community")
 	}
 
 	go s.SuggestionPublisher.PublishSuggestionEvent(
@@ -161,18 +160,18 @@ func (s *CommunityServiceImpl) DeleteCommunity(ctx context.Context, id int) erro
 func (s *CommunityServiceImpl) JoinCommunity(ctx context.Context, id int, data dto.JoinCommunityRequest) error {
 	community, err := s.CommunityRepository.GetCommunityDetailByID(ctx, id)
 	if err != nil {
-		return errors.New("error retrieving community")
+		return fmt.Errorf("error retrieving community")
 	}
 	if community == nil {
-		return errors.New("community not found")
+		return fmt.Errorf("community not found")
 	}
 
 	existingMember, err := s.CommunityRepository.CheckMembership(ctx, id, data.UserID)
 	if err != nil {
-		return errors.New("error checking membership")
+		return fmt.Errorf("error checking membership")
 	}
 	if existingMember != nil {
-		return errors.New("user already a member of the community")
+		return fmt.Errorf("user already a member of the community")
 	}
 
 	newMember := model.CommunityMember{
@@ -181,12 +180,12 @@ func (s *CommunityServiceImpl) JoinCommunity(ctx context.Context, id int, data d
 	}
 
 	if err := s.CommunityRepository.AddCommunityMember(ctx, &newMember); err != nil {
-		return errors.New("error adding community member")
+		return fmt.Errorf("error adding community member")
 	}
 
 	community.MembersCount++
 	if err := s.CommunityRepository.UpdateCommunity(ctx, id, community); err != nil {
-		return errors.New("error updating community member count")
+		return fmt.Errorf("error updating community member count")
 	}
 
 	go s.SuggestionPublisher.PublishSuggestionEvent(
@@ -202,7 +201,7 @@ func (s *CommunityServiceImpl) JoinCommunity(ctx context.Context, id int, data d
 func (s *CommunityServiceImpl) GetCommunityPosts(ctx context.Context, id int, filters map[string]interface{}) ([]dto.CommunityPostData, error) {
 	communityPosts, err := s.CommunityRepository.GetCommunityPosts(ctx, id, filters)
 	if err != nil {
-		return nil, errors.New("error retrieving community posts")
+		return nil, fmt.Errorf("error retrieving community posts")
 	}
 
 	var posts []dto.CommunityPostData
@@ -229,7 +228,7 @@ func (s *CommunityServiceImpl) GetCommunityPosts(ctx context.Context, id int, fi
 func (s *CommunityServiceImpl) GetCommunityDetail(ctx context.Context, slug string) (*model.Community, error) {
 	community, err := s.CommunityRepository.GetCommunityDetailBySlug(ctx, slug)
 	if err != nil {
-		return nil, errors.New("error retrieving community detail")
+		return nil, fmt.Errorf("error retrieving community detail")
 	}
 	return community, nil
 }
@@ -237,7 +236,7 @@ func (s *CommunityServiceImpl) GetCommunityDetail(ctx context.Context, slug stri
 func (s *CommunityServiceImpl) GetUserJoinedCommunities(ctx context.Context, data dto.GetUserJoinedCommunitiesRequest) ([]model.Community, error) {
 	communities, err := s.CommunityRepository.GetUserJoinedCommunities(ctx, data.UserID)
 	if err != nil {
-		return nil, errors.New("error retrieving user communities")
+		return nil, fmt.Errorf("error retrieving user communities")
 	}
 	return communities, nil
 }
