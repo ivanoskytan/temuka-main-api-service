@@ -21,14 +21,16 @@ type MajorService interface {
 }
 
 type MajorServiceImpl struct {
-	MajorRepository     repository.MajorRepository
-	SuggestionPublisher publisher.SuggestionPublisher
+	MajorRepository      repository.MajorRepository
+	UniversityRepository repository.UniversityRepository
+	SuggestionPublisher  publisher.SuggestionPublisher
 }
 
-func NewMajorService(majorRepo repository.MajorRepository, suggestionPublisher publisher.SuggestionPublisher) MajorService {
+func NewMajorService(majorRepo repository.MajorRepository, universityRepo repository.UniversityRepository, suggestionPublisher publisher.SuggestionPublisher) MajorService {
 	return &MajorServiceImpl{
-		MajorRepository:     majorRepo,
-		SuggestionPublisher: suggestionPublisher,
+		MajorRepository:      majorRepo,
+		UniversityRepository: universityRepo,
+		SuggestionPublisher:  suggestionPublisher,
 	}
 }
 
@@ -46,14 +48,24 @@ func (s *MajorServiceImpl) AddMajor(ctx context.Context, req dto.AddMajorRequest
 		return nil, fmt.Errorf("failed to create major record")
 	}
 
+	university, err := s.UniversityRepository.GetUniversityByID(ctx, req.UniversityID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch university: %w", err)
+	}
+	major.University = university
+	majorID := major.ID
+	majorName := major.Name
+	majorDesc := major.Description
+	univLogo := university.Logo
+
 	go s.SuggestionPublisher.PublishSuggestionEvent(
 		constant.EventOperationCreate,
 		constant.EventEntityTypeMajor,
-		fmt.Sprintf("%d", major.ID),
+		fmt.Sprintf("%d", majorID),
 		map[string]interface{}{
-			"title":   major.Name,
-			"content": major.Description,
-			"icon":    major.University.Logo,
+			"title":   majorName,
+			"content": majorDesc,
+			"icon":    univLogo,
 			"slug":    fmt.Sprintf("major/%d", major.ID),
 		},
 	)
