@@ -45,7 +45,7 @@ func Routes(db database.PostgresWrapper, redis keyValueStore.RedisWrapper, stora
 	moderatorService := service.NewModeratorService(moderatorRepo, notificationRepo)
 	reportService := service.NewReportService(reportRepo)
 	universityService := service.NewUniversityService(universityRepo, reviewRepo, searchIndexPublisher)
-	majorService := service.NewMajorService(majorRepo, searchIndexPublisher)
+	majorService := service.NewMajorService(majorRepo, universityRepo, searchIndexPublisher)
 	locationService := service.NewLocationService(locationRepo)
 	conversationService := service.NewConversationService(conversationRepo, userRepo)
 	fileService := service.NewFileService(storage)
